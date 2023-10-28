@@ -36,6 +36,7 @@ def generateCube(translation, rotation):
         newPosition = rotation.dot(position)
         mass[3] = newPosition.T
     masses[:, 3] = masses[:, 3] + translation
+    return masses, springs
 
 
 
