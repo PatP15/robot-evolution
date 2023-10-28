@@ -1,5 +1,6 @@
 import numpy as np
 import torch 
+from itertools import combinations
 
 def generateMasses(massLocs, massVals):
     numMasses = len(massLocs)
@@ -9,6 +10,34 @@ def generateMasses(massLocs, massVals):
     masses[:, 3, :] = masses[:, 3, :] + massLocs
     masses[:, 0, 0] = masses[:, 0, 0] + massVals
     return masses
+
+def randomRotation():
+    a, b, c = np.random.random(size=3) * 2 * np.pi
+    yaw = np.array([[np.cos(a), -np.sin(a), 0],
+                    [np.sin(a), np.cos(a), 0],
+                    [0, 0, 1]])
+    pitch = np.array([[np.cos(b), 0, np.sin(b)],
+                    [0, 1, 0],
+                    [-np.sin(b), 0, np.cos(b)]])
+    roll = np.array([[1, 0, 0],
+                    [0, np.cos(c), -np.sin(c)],
+                    [0, np.sin(c), np.cos(c)]])
+    rotation = yaw.dot(pitch).dot(roll)
+    return rotation
+
+def generateCube(translation, rotation):
+    massLocations = [(0, 0, 1), (0, 1, 1), (1, 0, 1), (1, 1, 1), (0, 0, 2), (0, 1, 2), (1, 0, 2), (1, 1, 2)]
+    massValues = [1, 1, 1, 1, 1, 1, 1, 1]
+    all_combinations = list(combinations(range(8), 2))
+    springs = np.array([[comb[0], comb[1], 10000, np.linalg.norm(np.array(massLocations[comb[0]]) - np.array(massLocations[comb[1]]))] for comb in all_combinations])
+    masses = generateMasses(massLocations, massValues)
+    for mass in masses:
+        position = mass[3].T
+        newPosition = rotation.dot(position)
+        mass[3] = newPosition.T
+    masses[:, 3] = masses[:, 3] + translation
+    return masses, springs
+
 
 
 def compute_spring_forces(masses, springs):
