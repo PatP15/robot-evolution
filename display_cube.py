@@ -16,32 +16,44 @@ camera_distance = 10  # Adjust this for initial zoom level
 camera_translation = [0, 0]  # Translation offsets for panning
 
 
-massLocations = [(0, 0, 1), (0, 1, 1), (1, 0, 1), (1, 1, 1), (0, 0, 2), (0, 1, 2), (1, 0, 2), (1, 1, 2)]
-massValues = [1, 1, 1, 1, 1, 1, 1, 1]
-masses = generateMasses(massLocations, massValues)
-
-
-class Cube:
-    def __init__(self):
-        self.vertices = self.update_vertices(masses)
-        self.vertex_size = np.zeros((len(masses), 1))
-        # self.edges = self.create_edges(springs)
+class MassSpringSystem:
+    def __init__(self, masses, springs):
+        # print("init: ", springs)
+        self.update_vertices(masses)
+        self.create_edges(springs)
+        # print("init edges: ", self.edges)
 
     def update_vertices(self, masses):
-        masses = masses
+        self.masses = masses
         self.vertices = masses[:, 3, :]
         # print("vertices: ", self.vertices)
         self.vertex_sizes = masses[:, 0, 0]/20
         # print("vertex_sizes ", self.vertex_sizes)
 
-
     def create_edges(self, springs):
-        springs = springs
-        edges = []
-        for spring in springs:
-            edges.append([spring[0], spring[1]])
-        self.edges = edges
+        # print("create_edges: ", springs)
+        self.springs = springs
+        # print(self.springs[:, :2])
+        self.edges = self.springs[:, :2]  # Get the first two columns which are the vertex indices for each spring
         # print("edges: ", self.edges)
+
+
+    def simulate(self, dt):
+
+        netForces = 0
+        netForces = netForces + compute_net_spring_forces(self.masses, self.springs) # Add spring forces
+        netForces = netForces + computeGravityForces(self.masses) # Add gravity
+        netForces = netForces + computeGroundCollisionForces(self.masses)
+        # Integration Step
+        # Calculate Acceleration
+        self.masses[:, 1] = torch.div(netForces, self.masses[:, 0, 0].unsqueeze(-1))
+        # Calculate Velocity
+        self.masses[:, 2] = self.masses[:, 2] + self.masses[:, 1] * dt
+        # Calculate Position
+        self.masses[:, 3] = self.masses[:, 3] + self.masses[:, 2] * dt
+
+        # Apply dampening
+        self.masses[:, 2] = self.masses[:, 2] * 0.999
 
 def draw_checkered_ground(size, squares):
     half_size = size / 2
@@ -71,7 +83,7 @@ def draw_cube(cube):
     for edge in cube.edges:
         for vertex in edge:
             # print("vertex: ", cube.vertices[int(vertex)])
-            glVertex3fv(cube.vertices[int(vertex)])
+            glVertex3fv(cube.vertices[int(vertex)].numpy())
     glEnd()
 
 def draw_shadow(cube):
@@ -80,9 +92,10 @@ def draw_shadow(cube):
     glBegin(GL_LINES)
     for edge in cube.edges:
         for vertex in edge:
-            point = cube.vertices[int(vertex)].copy()
+            point = cube.vertices[int(vertex)].clone()
             point[2] = 0
-            glVertex3fv(point)
+            print(point)
+            glVertex3fv(point.numpy())
     glEnd()
 
 def draw_spheres_at_vertices(cube):
@@ -141,14 +154,14 @@ def main():
 
 
     masses = generateMasses(massLocations, massValues)
+
     masses = torch.tensor(masses, dtype=torch.float)
     springs = torch.tensor(springs, dtype=torch.float)
+    
+    # print(springs)
 
-
-    cube = Cube()
-    cube.update_vertices(masses.numpy())
-    cube.create_edges(springs.numpy())
-
+    cube = MassSpringSystem(masses, springs)
+    # print(cube.edges)
     dt = 0.001
     T = 0
     N = masses.size(0)
@@ -179,23 +192,11 @@ def main():
         glTranslatef(camera_translation[0], camera_translation[1], -camera_distance)
         glRotatef(angle_x, 1, 0, 0)
         glRotatef(angle_y, 0, 0, 1)
-
-        netForces = 0
-        netForces = netForces + compute_net_spring_forces(masses, springs) # Add spring forces
-        netForces = netForces + computeGravityForces(masses) # Add gravity
-        netForces = netForces + computeGroundCollisionForces(masses)
-        # Integration Step
-        # Calculate Acceleration
-        masses[:, 1] = torch.div(netForces, masses[:, 0, 0].unsqueeze(-1))
-        # Calculate Velocity
-        masses[:, 2] = masses[:, 2] + masses[:, 1] * dt
-        # Calculate Position
-        masses[:, 3] = masses[:, 3] + masses[:, 2] * dt
-
-        # Apply dampening
-        masses[:, 2] = masses[:, 2] * 0.999
+        # print(cube.edges)
+        cube.simulate(dt)
         
         draw_checkered_ground(20, 10)
+        # print(cube.edges)
         draw_shadow(cube)
 
 
