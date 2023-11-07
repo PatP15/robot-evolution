@@ -142,10 +142,30 @@ def mouse_motion_callback(event):
     last_mouse_x, last_mouse_y = event.pos
     # ... [rest of the code remains unchanged]
 
+# Update spring properties in-place according to material
+def updateSprings(springs, og, w, T, materials):
+    # Update spring constant
+    springs[:, 2, materials == 1] = 1000
+    springs[:, 2, materials == 2] = 20000
+    springs[:, 2, materials == 3] = 5000
+    springs[:, 2, materials == 4] = 5000
+    # Update resting lengths
+    springs[:, 3, materials == 1] = og
+    springs[:, 3, materials == 2] = og
+    springs[:, 3, materials == 3] = og * (1 + 0.25 * torch.sin(w*T))
+    springs[:, 3, materials == 4] = og * (1 + 0.25 * torch.sin(w*T+torch.pi))
 
 def main():
     massLocations = [(0, 0, 1), (0, 1, 1), (1, 0, 1), (1, 1, 1), (0, 0, 2), (0, 1, 2), (1, 0, 2), (1, 1, 2)]
     massValues = [1, 1, 1, 1, 1, 1, 1, 1]
+    '''
+        materials
+        1: k=1000 b=c=0
+        2: k=20000 b=c=0
+        3: k=5000 b=0.25 c=0
+        4: k=5000 b=0.25 c=pi
+        w=2*pi
+    '''
 
 
 
@@ -174,7 +194,7 @@ def main():
         randspin = torch.rand(3) * 50
         cubes[i].masses[0, 2] = randspin
     
-   
+    materials = torch.randint(1, 4, size=(springs.size()[0]))
     # cubes[0].masses[7, 2] = -randspin
     print(springs)
 
@@ -184,9 +204,9 @@ def main():
     T = 0
     N = masses.size(0)
     netForces = torch.zeros((N, 3))
-    omega = 20
+    w = 2*np.pi
 
-    # og = springs[:, 3].clone()
+    og = springs[:, 3].clone()
     pygame.init()
     display = (800, 600)
     pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
@@ -196,7 +216,7 @@ def main():
 
 
     while True:
-        # springs[:, 3] = og + 0.1 * torch.sin(torch.tensor(T*omega))
+        updateSprings(springs, og, w, T, materials)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
