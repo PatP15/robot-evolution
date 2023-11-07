@@ -55,6 +55,21 @@ class MassSpringSystem:
         # Apply dampening
         self.masses[:, 2] = self.masses[:, 2] * 0.999
 
+# Update spring properties in-place according to material
+
+def updateSprings(springs, og, w, T, materials):
+    # Update spring constant
+    springs[materials == 1, 2] = 1000
+    springs[materials == 2, 2,] = 20000
+    springs[materials == 3, 2] = 5000
+    springs[materials == 4, 2] = 5000
+    # Update resting lengths
+    springs[materials == 1, 3] = og[materials == 1]
+    springs[materials == 2, 3] = og[materials == 2]
+    springs[materials == 3, 3] = og[materials == 3] * (1 + 0.25 * np.sin(w*T))
+    springs[materials == 4, 3] = og[materials == 4] * (1 + 0.25 * np.sin(w*T+torch.pi))
+
+
 def draw_checkered_ground(size, squares):
     half_size = size / 2
     square_size = size / squares
@@ -151,6 +166,14 @@ def generateSprings(massLocations, massIdxs):
 
 
 def main():
+    '''
+        materials
+        1: k=1000 b=c=0
+        2: k=20000 b=c=0
+        3: k=5000 b=0.25 c=0
+        4: k=5000 b=0.25 c=pi
+        w=2*pi
+    '''
     massLocations = [(0, 0, 0),
                      (0, 1, 0),
                      (0, 3, 0),
@@ -204,7 +227,7 @@ def main():
     for x,y,z in og:
         massLocations.append((x +4, y, z))
 
-    print(len(massLocations))
+    # print(len(massLocations))
     lefthip_masses = np.array([0, 1, 4, 5, 8, 9, 12, 13]) + 18
     lefthip2_springs = generateSprings(massLocations, lefthip_masses)
     
@@ -223,32 +246,27 @@ def main():
     springs = np.concatenate((lefthip_springs, middle_springs, righthip_springs, frontlegs, 
                               lefthip2_springs, middle2_springs, righthip2_springs, backlegs, torso_springs), axis=0)
 
-    grid_dimensions = (3, 3)
+    grid_dimensions = (1, 1)
     spacing = 3 # adjust this value for the distance between cubes in the grid
 
     objs = []
 
     for i in range(grid_dimensions[0]):
         for j in range(grid_dimensions[1]):
-            # x_position = i * spacing
-            # y_position = j * spacing
-            # z_position = np.random.randint(1,2)
-
-            # masses, springs = generateTetra((x_position, y_position, z_position), np.eye(3))
+        
             masses = torch.tensor(masses, dtype=torch.float)
             springs = torch.tensor(springs, dtype=torch.float)
             
             objs.append(MassSpringSystem(masses, springs))
-        # randspin = torch.rand(3) * 50
-        # cubes[i].masses[0, 2] = randspin
-    
-   
-    # cubes[0].masses[7, 2] = -randspin
-    # print(springs)
 
-    # cube = MassSpringSystem(masses, springs)
-    # print(cube.edges)
-    dt = 0.004
+    materials = torch.randint(1, 4, size=(springs.size()[0],))
+    # print(springs.size())
+    # print(materials.size())
+    w = 2*np.pi
+    og = springs[:, 3].clone()
+    # print(og)
+    
+    dt = 0.002
     T = 0
     N = masses.size(0)
     netForces = torch.zeros((N, 3))
@@ -262,9 +280,9 @@ def main():
     glTranslatef(0.0, 0.0, -12) # Adjusted to have a top-down view
     # Initialization of Masses and Springs
 
-
+    # print(len(objs))
     while True:
-        # springs[:, 3] = og + 0.1 * torch.sin(torch.tensor(T*omega))
+        updateSprings(springs, og, w, T, materials)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
