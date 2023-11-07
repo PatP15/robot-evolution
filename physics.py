@@ -26,6 +26,7 @@ def randomRotation():
     return rotation
 
 def generateCube(translation, rotation):
+    #fix bottom z
     massLocations = [(0, 0, 1), (0, 1, 1), (1, 0, 1), (1, 1, 1), (0, 0, 2), (0, 1, 2), (1, 0, 2), (1, 1, 2)]
     massValues = [1, 1, 1, 1, 1, 1, 1, 1]
     all_combinations = list(combinations(range(8), 2))
@@ -38,7 +39,18 @@ def generateCube(translation, rotation):
     masses[:, 3] = masses[:, 3] + translation
     return masses, springs
 
-
+def generateTetra(translation, rotation):
+    massLocations = [(0, 0, 0), (0, 1, 0), (1, 0, 0), (0, 0, 1)]
+    massValues = [1, 1, 1, 1]
+    all_combinations = list(combinations(range(4), 2))
+    springs = np.array([[comb[0], comb[1], 10000, np.linalg.norm(np.array(massLocations[comb[0]]) - np.array(massLocations[comb[1]]))] for comb in all_combinations])
+    masses = generateMasses(massLocations, massValues)
+    for mass in masses:
+        position = mass[3].T
+        newPosition = rotation.dot(position)
+        mass[3] = newPosition.T
+    masses[:, 3] = masses[:, 3] + translation
+    return masses, springs
 
 def compute_spring_forces(masses, springs):
     idx1 = springs[:, 0].long()

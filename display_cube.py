@@ -76,6 +76,7 @@ def draw_checkered_ground(size, squares):
             glEnd()
 
 
+
 def draw_cube(cube):
     glColor3f(0, 0, 1)  # Set color to blue
     glLineWidth(5)  # Set line width to 5
@@ -154,30 +155,48 @@ def main():
 
 
     masses = generateMasses(massLocations, massValues)
+    grid_dimensions = (3, 3)
+    spacing = 3 # adjust this value for the distance between cubes in the grid
 
-    masses = torch.tensor(masses, dtype=torch.float)
-    springs = torch.tensor(springs, dtype=torch.float)
+    cubes = []
+
+    for i in range(grid_dimensions[0]):
+        for j in range(grid_dimensions[1]):
+            x_position = i * spacing
+            y_position = j * spacing
+            z_position = np.random.randint(1,2)
+
+            masses, springs = generateTetra((x_position, y_position, z_position), np.eye(3))
+            masses = torch.tensor(masses, dtype=torch.float)
+            springs = torch.tensor(springs, dtype=torch.float)
+            
+            cubes.append(MassSpringSystem(masses, springs))
+        randspin = torch.rand(3) * 50
+        cubes[i].masses[0, 2] = randspin
     
-    # print(springs)
+   
+    # cubes[0].masses[7, 2] = -randspin
+    print(springs)
 
-    cube = MassSpringSystem(masses, springs)
+    # cube = MassSpringSystem(masses, springs)
     # print(cube.edges)
-    dt = 0.001
+    dt = 0.004
     T = 0
     N = masses.size(0)
     netForces = torch.zeros((N, 3))
     omega = 20
 
-    og = springs[:, 3].clone()
+    # og = springs[:, 3].clone()
     pygame.init()
     display = (800, 600)
     pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
     gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
     glTranslatef(0.0, 0.0, -12) # Adjusted to have a top-down view
     # Initialization of Masses and Springs
-    
+
+
     while True:
-        # springs[:, 3] = og + 0.15 * torch.sin(torch.tensor(T*omega))
+        # springs[:, 3] = og + 0.1 * torch.sin(torch.tensor(T*omega))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -193,20 +212,24 @@ def main():
         glRotatef(angle_x, 1, 0, 0)
         glRotatef(angle_y, 0, 0, 1)
         # print(cube.edges)
-        cube.simulate(dt)
         
-        draw_checkered_ground(20, 10)
+        
+        draw_checkered_ground(30, 30)
         # print(cube.edges)
-        draw_shadow(cube)
 
+        for cube in cubes:
+            cube.simulate(dt)
+            draw_shadow(cube)
 
-        # Lift and rotate the cube
+        for cube in cubes:
 
-        draw_cube(cube)
-        draw_spheres_at_vertices(cube)
+            draw_cube(cube)
+            # draw_cube_faces(cube)
+            draw_spheres_at_vertices(cube)
         
         
-        netForces = 0
+        
+
         T += dt
         pygame.display.flip()
         pygame.time.wait(1)
