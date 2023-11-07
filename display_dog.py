@@ -76,6 +76,7 @@ def draw_checkered_ground(size, squares):
             glEnd()
 
 
+
 def draw_cube(cube):
     glColor3f(0, 0, 1)  # Set color to blue
     glLineWidth(5)  # Set line width to 5
@@ -141,47 +142,129 @@ def mouse_motion_callback(event):
     last_mouse_x, last_mouse_y = event.pos
     # ... [rest of the code remains unchanged]
 
+def generateSprings(massLocations, massIdxs):
+    numMasses = len(massIdxs)
+    all_combinations = list(combinations(range(numMasses), 2))
+    springs = np.array([[massIdxs[comb[0]], massIdxs[comb[1]], 10000, np.linalg.norm(np.array(massLocations[massIdxs[comb[0]]]) - np.array(massLocations[massIdxs[comb[1]]]))] for comb in all_combinations])
+    # springs = np.delete(springs, massIdxs, axis=0)
+    return springs
+
 
 def main():
-    massLocations = [(0, 0, 1), 
-                     (0, 1, 1), 
-                     (1, 0, 1), 
-                     (1, 1, 1), 
-                     (0, 0, 2), (0, 1, 2), (1, 0, 2), (1, 1, 2)]
-    massValues = [1, 1, 1, 1, 1, 1, 1, 1]
+    massLocations = [(0, 0, 0),
+                     (0, 1, 0),
+                     (0, 3, 0),
+                     (0, 4, 0),
+                     (1, 0, 0),
+                     (1, 1, 0),
+                     (1, 3, 0),
+                     (1, 4, 0),
+                     (0, 0, -1),
+                     (0, 1, -1),
+                     (0, 3, -1),
+                     (0, 4, -1),
+                     (1, 0, -1),
+                     (1, 1, -1),
+                     (1, 3, -1),
+                     (1, 4, -1),
+                     (0.5, 0.5, -2),
+                     (0.5, 3.5, -2)]
+    massLocations = [(x, y, z + 4) for x, y, z in massLocations]
 
+    massValues = [1] * 36
+    # print(massValues)
 
+    lefthip_masses = [0, 1, 4, 5, 8, 9, 12, 13]
+    lefthip_springs = generateSprings(massLocations, lefthip_masses)
+    
+    middle_masses = [1,2,5,6,9,10,13,14]
+    middle_springs = generateSprings(massLocations, middle_masses)
 
-    all_combinations = list(combinations(range(8), 2))
-    springs = np.array([[comb[0], comb[1], 10000, np.linalg.norm(np.array(massLocations[comb[0]]) - np.array(massLocations[comb[1]]))] for comb in all_combinations])
+    righthip_masses = [2,3,6,7,10,11,14,15]
+    righthip_springs = generateSprings(massLocations, righthip_masses)
 
+    frontlegs = np.array([
+        [12, 16, 10000, math.sqrt(1.5)],
+        [13, 16, 10000, math.sqrt(1.5)],
+        [8, 16, 10000, math.sqrt(1.5)],
+        [9, 16, 10000, math.sqrt(1.5)],
+        [10, 17, 10000, math.sqrt(1.5)],
+        [11, 17, 10000, math.sqrt(1.5)],
+        [14, 17, 10000, math.sqrt(1.5)],
+        [15, 17, 10000, math.sqrt(1.5)],
+    ])
+    backlegs = frontlegs.copy()
+    backlegs[:, :2] += 18
+    # print(backlegs)
+    # all_combinations = list(combinations(range(18), 2))
+    # springs = np.array([[comb[0], comb[1], 10000, np.linalg.norm(np.array(massLocations[comb[0]]) - np.array(massLocations[comb[1]]))] for comb in all_combinations])
 
+    # Front half of dog
+    og = massLocations.copy()
+    for x,y,z in og:
+        massLocations.append((x +4, y, z))
+
+    print(len(massLocations))
+    lefthip_masses = np.array([0, 1, 4, 5, 8, 9, 12, 13]) + 18
+    lefthip2_springs = generateSprings(massLocations, lefthip_masses)
+    
+    middle_masses = np.array([1,2,5,6,9,10,13,14]) + 18
+    middle2_springs = generateSprings(massLocations, middle_masses)
+
+    righthip_masses = np.array([2,3,6,7,10,11,14,15]) + 18
+    righthip2_springs = generateSprings(massLocations, righthip_masses)
+
+    torso_masses = np.array([1, 2, 9, 10])
+    torso_masses = np.concatenate((torso_masses, torso_masses + 18))
+    torso_springs = generateSprings(massLocations, torso_masses)
 
     masses = generateMasses(massLocations, massValues)
 
-    masses = torch.tensor(masses, dtype=torch.float)
-    springs = torch.tensor(springs, dtype=torch.float)
+    springs = np.concatenate((lefthip_springs, middle_springs, righthip_springs, frontlegs, 
+                              lefthip2_springs, middle2_springs, righthip2_springs, backlegs, torso_springs), axis=0)
+
+    grid_dimensions = (3, 3)
+    spacing = 3 # adjust this value for the distance between cubes in the grid
+
+    objs = []
+
+    for i in range(grid_dimensions[0]):
+        for j in range(grid_dimensions[1]):
+            # x_position = i * spacing
+            # y_position = j * spacing
+            # z_position = np.random.randint(1,2)
+
+            # masses, springs = generateTetra((x_position, y_position, z_position), np.eye(3))
+            masses = torch.tensor(masses, dtype=torch.float)
+            springs = torch.tensor(springs, dtype=torch.float)
+            
+            objs.append(MassSpringSystem(masses, springs))
+        # randspin = torch.rand(3) * 50
+        # cubes[i].masses[0, 2] = randspin
     
+   
+    # cubes[0].masses[7, 2] = -randspin
     # print(springs)
 
-    cube = MassSpringSystem(masses, springs)
+    # cube = MassSpringSystem(masses, springs)
     # print(cube.edges)
-    dt = 0.001
+    dt = 0.004
     T = 0
     N = masses.size(0)
     netForces = torch.zeros((N, 3))
     omega = 20
 
-    og = springs[:, 3].clone()
+    # og = springs[:, 3].clone()
     pygame.init()
     display = (800, 600)
     pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
     gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
     glTranslatef(0.0, 0.0, -12) # Adjusted to have a top-down view
     # Initialization of Masses and Springs
-    
+
+
     while True:
-        # springs[:, 3] = og + 0.15 * torch.sin(torch.tensor(T*omega))
+        # springs[:, 3] = og + 0.1 * torch.sin(torch.tensor(T*omega))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -197,20 +280,24 @@ def main():
         glRotatef(angle_x, 1, 0, 0)
         glRotatef(angle_y, 0, 0, 1)
         # print(cube.edges)
-        cube.simulate(dt)
         
-        draw_checkered_ground(20, 10)
+        
+        draw_checkered_ground(30, 30)
         # print(cube.edges)
-        draw_shadow(cube)
 
+        for obj in objs:
+            obj.simulate(dt)
+            draw_shadow(obj)
 
-        # Lift and rotate the cube
+        for obj in objs:
 
-        draw_cube(cube)
-        draw_spheres_at_vertices(cube)
+            draw_cube(obj)
+            # draw_cube_faces(cube)
+            draw_spheres_at_vertices(obj)
         
         
-        netForces = 0
+        
+
         T += dt
         pygame.display.flip()
         pygame.time.wait(1)
