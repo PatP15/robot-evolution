@@ -182,7 +182,7 @@ def generateSprings(massLocations, massIdxs):
     return springs
 
 
-def main():
+def simulate(centerLocs, centerMats):
     '''
         materials
         1: k=1000 b=c=0
