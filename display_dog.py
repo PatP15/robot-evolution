@@ -44,7 +44,7 @@ class MassSpringSystem:
 
     def simulate(self, dt):
         mu_s = 1  # Static friction coefficient
-        mu_k = 0.8 # Kinetic friction coefficient
+        mu_k = 0.5 # Kinetic friction coefficient
 
         # Compute forces
         netForces = compute_net_spring_forces(self.masses, self.springs)  # Spring forces
@@ -283,7 +283,7 @@ def main():
     # og = springs[:, 3].clone()
     # print(og)
     
-    dt = 0.002
+    dt = 0.001
     T = 0
     N = masses.size(0)
     netForces = torch.zeros((N, 3))
