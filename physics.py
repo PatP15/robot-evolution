@@ -98,8 +98,42 @@ def computeGravityForces(masses):
     gravityForces[:, 2] = -9.81 * masses[:, 0, 0]
     return gravityForces
 
-def computeGroundCollisionForces(masses, K_g=100000):
+def computeGroundCollisionForces(masses, K_g=10000):
     N = masses.size(0)
     groundCollisionForces = torch.zeros((N, 3))#.cuda()
     groundCollisionForces[masses[:, 3, 2] < 0, 2] = -masses[masses[:, 3, 2] < 0, 3, 2] * K_g
     return groundCollisionForces
+
+def computeFrictionForces(masses, netForces, groundCollisionForces, mu_s, mu_k):
+    N = masses.size(0)
+    frictionForces = torch.zeros((N, 3))
+
+    # Indices where mass is at or below the ground
+    ground_indices = (masses[:, 3, 2] <= 0)
+
+    if ground_indices.any():
+        # Normal force magnitudes (only in z-direction)
+        Fn = -groundCollisionForces[ground_indices, 2]
+
+        # Horizontal force magnitudes (only in x and y directions)
+        FH_x = netForces[ground_indices, 0]
+        FH_y = netForces[ground_indices, 1]
+        FH_magnitude = torch.sqrt(FH_x**2 + FH_y**2)
+        unit_vector_x = FH_x / (FH_magnitude + 1e-8)  # Adding a small value to avoid division by zero
+        unit_vector_y = FH_y / (FH_magnitude + 1e-8)
+
+        # Apply kinetic friction condition
+        kinetic_friction_indices = FH_magnitude >= (Fn * mu_s)  
+        # Update friction forces for masses on the ground
+        frictionForces[ground_indices][kinetic_friction_indices, 0] = FH_x[kinetic_friction_indices] - Fn[kinetic_friction_indices] * mu_k * unit_vector_x[kinetic_friction_indices]
+        frictionForces[ground_indices][kinetic_friction_indices, 1] = FH_y[kinetic_friction_indices] - Fn[kinetic_friction_indices] * mu_k * unit_vector_y[kinetic_friction_indices]
+
+        frictionForces[ground_indices][~kinetic_friction_indices, 0] = 0
+        frictionForces[ground_indices][~kinetic_friction_indices, 1] = 0
+        frictionForces[ground_indices, 2] = -Fn
+
+    return frictionForces
+
+
+    # return frictionForces
+
