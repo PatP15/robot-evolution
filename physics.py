@@ -141,7 +141,7 @@ def batch_compute_spring_parameters(batch_springs, batch_mass_materials):
 def buildBots(masses, springs, popCenterLocs, popCenterMats):
     populationSize = popCenterLocs.size()[0]
     # Assuming you have your batched tensors ready
-    popMasses = masses.reshape(populationSize, ...) # Tensor of shape (num_robots, num_masses, 3)
+    popMasses = masses.reshape(populationSize, -1, ...) # Tensor of shape (num_robots, num_masses, 3)
     # popCenterLocs should be a Tensor of shape (num_robots, num_centers, 3)
     # popCenterMats should be a Tensor of shape (num_robots, num_centers, material_property_dim)
 
@@ -149,7 +149,7 @@ def buildBots(masses, springs, popCenterLocs, popCenterMats):
     pop_mass_materials = batch_assign_materials_to_masses(popMasses, popCenterLocs, popCenterMats)
 
     # Compute spring parameters for each robot
-    popSprings = springs.reshape(populationSize, ...) # Tensor of shape (num_robots, num_springs, 3)
+    popSprings = springs.reshape(populationSize, -1, ...) # Tensor of shape (num_robots, num_springs, 3)
     popSpringProperties = batch_compute_spring_parameters(popSprings, pop_mass_materials)
     print(popSpringProperties.size())
     return popSpringProperties
