@@ -202,16 +202,7 @@ def generateSprings(massLocations, massIdxs):
     # springs = np.delete(springs, massIdxs, axis=0)
     return springs
 
-
-def simulate(centerLocs, centerMats):
-    '''
-        materials
-        1: k=1000 b=c=0
-        2: k=20000 b=c=0
-        3: k=5000 b=0.25 c=0
-        4: k=5000 b=0.25 c=pi
-        w=2*pi
-    '''
+def makeOneDog():
     massLocations = [(0, 0, 0),
                      (0, 1, 0),
                      (0, 3, 0),
@@ -293,17 +284,32 @@ def simulate(centerLocs, centerMats):
     masses = torch.tensor(masses, dtype=torch.float)
     springs = torch.tensor(springs, dtype=torch.float)
 
-    masses, springs = concatenate_masses_and_springs(masses, springs, 10)
-    # print("mass", len(masses))
-    # print("dog1: ", masses[:36])
-    # print("dog2: ", masses[36:])
-    print("spring", len(springs))
-    print("dog1: ", springs[:len(springs)//2])
-    print("dog2: ", springs[len(springs)//2:])
-    materials = torch.randint(1, 4, size=(springs.size()[0],))
+    return masses, springs
+
+def simulate(popCenterLocs, popCenterMats):
+    '''
+        materials
+        1: k=1000 b=c=0
+        2: k=20000 b=c=0
+        3: k=5000 b=0.25 c=0
+        4: k=5000 b=0.25 c=pi
+        w=2*pi
+    '''
+    populationSize = popCenterLocs.size()[0]
+    masses, springs = makeOneDog()
+    masses, springs = concatenate_masses_and_springs(masses, springs, populationSize)
+    # print("spring", len(springs))
+    # print("dog1: ", springs[:len(springs)//2])
+    # print("dog2: ", springs[len(springs)//2:])
+
+    materials = assignMaterials(masses, springs, popCenterLocs, popCenterMats) # torch.randint(1, 4, size=(springs.size()[0],))
+    print(materials.size())
     dog = (MassSpringSystem(masses, springs, materials))
 
-    
+    print("Materials:\n\n", materials)
+    print("Springs:\n\n", springs)
+
+    exit(1)
     # print(springs.size())
     # print(materials.size())
     w = 2*np.pi
@@ -364,4 +370,6 @@ def simulate(centerLocs, centerMats):
         pygame.time.wait(1)
 
 if __name__ == "__main__":
-    main()
+    popCenterLocs = np.array([[[0, 2, 1], [5, 2, 1]]])
+    popCenterMats = np.array([[[1], [4]]])
+    simulate(popCenterLocs, popCenterMats)

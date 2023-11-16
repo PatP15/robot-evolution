@@ -107,3 +107,9 @@ class GeneticAlgorithm():
             print("Max Distance: ", maxDistance)
             # Reset population
             self.centerLocs, self.centerMats = self.randomSample()
+
+# def main():
+#     ga = GeneticAlgorithm(1, )
+
+# if __name__ == "__main__":
+#     main()
