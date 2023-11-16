@@ -19,11 +19,11 @@ class GeneticAlgorithm():
             y: 0, 4 -> width
             z: 0, 2 -> height
         '''
-        centerLocations = torch.rand(size=(self.populationSize, self.numCenters, 3))
+        centerLocations = torch.rand(size=(self.populationSize, self.numCenters, 3), dtype=torch.float)
         centerLocations[..., 0] = centerLocations[..., 0] * 5
         centerLocations[..., 1] = centerLocations[..., 1] * 4
         centerLocations[..., 2] = centerLocations[..., 2] * 2
-        centerMaterials = torch.randint(low=1, high=4, size=(self.populationSize, self.numCenters, 1))
+        centerMaterials = torch.randint(low=1, high=4, size=(self.populationSize, self.numCenters, 1), dtype=torch.float)
         return centerLocations, centerMaterials
 
     def evaluate(self):
@@ -36,7 +36,8 @@ class GeneticAlgorithm():
         # distances = distances / distances.sum()
 
         # Sampling with replacement
-        selectedIndices = torch.multinomial(distances, self.populationSize // 2, replacement=False)
+        print("Children Pop: ", len(distances))
+        selectedIndices = torch.multinomial(distances, self.populationSize//2, replacement=False)
 
         distances = distances[selectedIndices]
         self.centerLocs = self.centerLocs[selectedIndices]
@@ -53,30 +54,53 @@ class GeneticAlgorithm():
         maxPos[..., 0] = maxPos[..., 0] * 5
         maxPos[..., 1] = maxPos[..., 1] * 4
         maxPos[..., 2] = maxPos[..., 2] * 2
-        self.centerLocs = torch.clip(self.centerLocs + alpha * torch.randn_like(self.centerLocs), min=0.0, max=maxPos)
+        mutated_locs = self.centerLocs + alpha * torch.randn_like(self.centerLocs)
+        zeroes = torch.zeros_like(self.centerLocs)
+        torch.clip(mutated_locs, zeroes, maxPos, out=self.centerLocs)  
         self.centerMats = torch.round(torch.clip(self.centerMats + torch.randn_like(self.centerMats), min=1, max=4))
         
     def clone(self):
-        self.population[self.population.shape[0] // 2:, ...] = self.population[:self.population.shape[0] // 2, ...].copy()
+        self.centerLocs[self.centerLocs.shape[0] // 2:, ...] = self.centerLocs[:self.centerLocs.shape[0] // 2, ...].clone()
+        self.centerMats[self.centerMats.shape[0] // 2:, ...] = self.centerMats[:self.centerMats.shape[0] // 2, ...].clone()
 
     def recombine(self, mc):
         # Recombine Center Locations
-        tempCenterLocs = self.centerLocs.reshape((self.population.shape[0] // 2, 2, ...))
-        parents1 = tempCenterLocs[:, 0, ...]
-        parents2 = tempCenterLocs[:, 1, ...]
+        print("Before recombine: ", self.centerLocs.shape)
+        print("centerLocs: ", self.centerLocs)  
+        # tempCenterLocs = self.centerLocs.reshape((self.centerLocs.shape[0] // 2, -1))
+        split = self.centerLocs.shape[0] // 2
+        parents1 = self.centerLocs[:split, :, ...]
+        if self.centerLocs.shape[0] % 2 == 1:
+            split += 1
+        
+        parents2 = self.centerLocs[split:, :, ...]
+        print("parents1: ", parents1)
+        print("parents2: ", parents2)
         children1 = mc * parents1 + (1 - mc) * parents2
         children2 = (1 - mc) * parents1 + mc * parents2
         children = torch.concat([children1, children2], axis=0)
+        
+        # children = children.reshape((-1, 2, self.centerLocs.shape[2]))
+        print("children: ", children)
+        print("children shape: ", children.shape)
         self.centerLocs = torch.concat([self.centerLocs, children], axis=0)
 
         # Recombine Center Materials
-        tempCenterMats = self.centerMats.reshape((self.population.shape[0] // 2, 2, ...))
-        parents1 = tempCenterMats[:, 0, ...]
-        parents2 = tempCenterMats[:, 1, ...]
+        # tempCenterMats = self.centerMats.reshape((self.centerMats.shape[0] // 2, 2))
+        split = self.centerMats.shape[0] // 2
+        parents1 = self.centerMats[:split, :, ...]
+        if self.centerMats.shape[0] % 2 == 1:
+            split += 1
+        parents2 = self.centerMats[split:, :, ...]
+        print("parents1: ", parents1)
+        print("parents2: ", parents2)
         children1 = mc * parents1 + (1 - mc) * parents2
         children2 = (1 - mc) * parents1 + mc * parents2
         children = torch.concat([children1, children2], axis=0)
+        # children = children.reshape((-1, 2, self.centerMats.shape[2]))
         self.centerMats = torch.concat([self.centerMats, children], axis=0)
+
+        print("After recombine: self center locs ", self.centerLocs.size(), self.centerMats.size())
 
     def run(self, iterations=100, repeat=1):
         # with open(outPath + "gold_ga2_function.csv", 'w', newline='') as outFile:
@@ -86,10 +110,12 @@ class GeneticAlgorithm():
         for j in range(repeat):
             maxDistance = 0.0
             for i in range(iterations):
+                print("Iteration: ", i)
+                print("Population Size: ", self.centerLocs.size()[0])
                 tmpDistance = self.select()
                 self.mutate()
                 self.recombine(mc=0.33)
-                # self.clone()
+                # self.clone() 
 
                 print(i*self.populationSize, ": ", tmpDistance)
                 if tmpDistance > maxDistance:
@@ -108,8 +134,9 @@ class GeneticAlgorithm():
             # Reset population
             self.centerLocs, self.centerMats = self.randomSample()
 
-# def main():
-#     ga = GeneticAlgorithm(1, )
+def main():
+    ga = GeneticAlgorithm(6, 4)
+    ga.run(iterations=10)
 
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    main()

@@ -74,6 +74,8 @@ class MassSpringSystem:
 
     def updateSprings(self, w, T):
         # Update spring constant
+        # print("materials: ", self.materials)
+        # print("springs: ", self.springs.shape)
         self.springs[self.materials == 1, 2] = 1000
         self.springs[self.materials == 2, 2] = 2000
         self.springs[self.materials == 3, 2] = 5000
@@ -98,9 +100,9 @@ def concatenate_masses_and_springs(masses, springs, n_copies):
     for i in range(1, n_copies):
         # Update indices for springs
         new_springs = springs.clone()
-        print(i * num_masses)
+        # print(i * num_masses)
         new_springs[:, :2] = new_springs[:, :2] + (num_masses*i)
-        print("NEW SPRINGS: ", new_springs )
+        # print("NEW SPRINGS: ", new_springs )
         # Concatenate masses and springs
         concatenated_masses = torch.cat([concatenated_masses, masses], dim=0)
         concatenated_springs = torch.cat([concatenated_springs, new_springs], dim=0)
@@ -295,6 +297,7 @@ def simulate(popCenterLocs, popCenterMats):
         4: k=5000 b=0.25 c=pi
         w=2*pi
     '''
+    # print(popCenterLocs)
     populationSize = popCenterLocs.size()[0]
     masses, springs = makeOneDog()
     masses, springs = concatenate_masses_and_springs(masses, springs, populationSize)
@@ -306,17 +309,18 @@ def simulate(popCenterLocs, popCenterMats):
     print(materials.size())
     dog = (MassSpringSystem(masses, springs, materials))
 
-    print("Materials:\n\n", materials)
-    print("Springs:\n\n", springs)
+    initial_positions = dog.masses[::36, 3, :].clone()
+    # print("Materials:\n\n", materials)
+    # print("Springs:\n\n", springs)
 
-    exit(1)
+    # exit(1)
     # print(springs.size())
     # print(materials.size())
     w = 2*np.pi
     # og = springs[:, 3].clone()
     # print(og)
     
-    dt = 0.002
+    dt = 0.001
     T = 0
     N = masses.size(0)
     netForces = torch.zeros((N, 3))
@@ -331,8 +335,8 @@ def simulate(popCenterLocs, popCenterMats):
     # Initialization of Masses and Springs
 
     # print(len(objs))
-    while True:
-        
+    while T < 0.1:
+        # print("T: ", T)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -366,10 +370,17 @@ def simulate(popCenterLocs, popCenterMats):
         
 
         T += dt
+        
         pygame.display.flip()
         pygame.time.wait(1)
+    final_positions = dog.masses[::36, 3, :].clone()
+    distances = torch.norm(final_positions - initial_positions, dim=1)
+    print(distances)
+    return torch.tensor(np.array(distances))
 
 if __name__ == "__main__":
-    popCenterLocs = np.array([[[0, 2, 1], [5, 2, 1]]])
-    popCenterMats = np.array([[[1], [4]]])
+    popCenterLocs = torch.tensor(np.array([[[0.0, 2.0, 1.0], [5.0, 2.0, 1.0]],
+                                           [[0.0, 2.0, 1.0], [5.0, 2.0, 1.0]]]), dtype=torch.float)
+    popCenterMats = torch.tensor(np.array([[[1.0], [4.0]],
+                                           [[4.0], [1.0]]]), dtype=torch.float)
     simulate(popCenterLocs, popCenterMats)

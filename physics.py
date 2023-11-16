@@ -130,8 +130,11 @@ def batch_compute_spring_parameters(batch_springs, batch_mass_materials):
     # batch_idx1, batch_idx2 = batch_springs[..., 0].long(), batch_springs[..., 1].long()
     batch_idx1 = batch_springs[..., 0].long()
 
+    # print("Batch idx1 size: ", batch_idx1.size())
     # Gather the material properties for each mass of each spring in each robot
-    batch_material1 = batch_mass_materials[torch.arange(batch_mass_materials.size(0))[:, None, None], batch_idx1[..., None].expand(-1, -1, batch_mass_materials.size(-1))]
+    # print(batch_mass_materials)
+    # batch_material1 = # match_mass_materials[:, batch_idx1]
+    batch_material1 = batch_mass_materials[torch.arange(batch_mass_materials.size(0))[:, None, None], batch_idx1[..., None].expand(-1,  -1, batch_mass_materials.size(-1))]
     # batch_material2 = batch_mass_materials[torch.arange(batch_mass_materials.size(0))[:, None, None], batch_idx2[..., None].expand(-1, -1, batch_mass_materials.size(-1))]
 
     # Calculate the average properties for each spring
@@ -141,16 +144,25 @@ def batch_compute_spring_parameters(batch_springs, batch_mass_materials):
 def assignMaterials(masses, springs, popCenterLocs, popCenterMats):
     populationSize = popCenterLocs.size()[0]
     # Assuming you have your batched tensors ready
-    popMasses = masses.reshape(populationSize, -1, ...) # Tensor of shape (num_robots, num_masses, 3)
+    # print(masses.size())
+    masses = masses.clone()[:, 3, :] # Tensor of shape (num_robots, num_masses, 3)
+    # print(masses.size())
+    # print(populationSize)
+    popMasses = masses.reshape(populationSize, -1, 3) # Tensor of shape (num_robots, num_masses, 3)
+    # print(popMasses.size())
     # popCenterLocs should be a Tensor of shape (num_robots, num_centers, 3)
     # popCenterMats should be a Tensor of shape (num_robots, num_centers, material_property_dim)
 
     # Assign materials to masses for each robot
     pop_mass_materials = batch_assign_materials_to_masses(popMasses, popCenterLocs, popCenterMats)
+    # print("Pop Mass Materials shape: ", pop_mass_materials.size())
 
     # Compute spring parameters for each robot
-    popSprings = springs.reshape(populationSize, -1, ...) # Tensor of shape (num_robots, num_springs, 3)
+    popSprings = springs.clone().reshape(populationSize, -1, 4) # Tensor of shape (num_robots, num_springs, 3)
+    numMasses = popMasses.size(1)
+    popSprings[..., :2] = popSprings[..., :2] % numMasses
     popSpringProperties = batch_compute_spring_parameters(popSprings, pop_mass_materials)
+    popSpringProperties = popSpringProperties.reshape(-1)
     return popSpringProperties
 
 def computeFrictionForces(masses, netForces, groundCollisionForces, mu_s, mu_k):
