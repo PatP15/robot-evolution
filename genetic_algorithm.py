@@ -14,8 +14,15 @@ class GeneticAlgorithm():
         '''
             Center Location Tensor: (populationSize x numCenters x 3)
             Center Material Tensor: (populationSize x numCenters x 1)
+
+            x: 0, 5 -> length
+            y: 0, 4 -> width
+            z: 0, 2 -> height
         '''
         centerLocations = torch.rand(size=(self.populationSize, self.numCenters, 3))
+        centerLocations[..., 0] = centerLocations[..., 0] * 5
+        centerLocations[..., 1] = centerLocations[..., 1] * 4
+        centerLocations[..., 2] = centerLocations[..., 2] * 2
         centerMaterials = torch.randint(low=1, high=4, size=(self.populationSize, self.numCenters, 1))
         return centerLocations, centerMaterials
 
@@ -41,8 +48,12 @@ class GeneticAlgorithm():
 
         return distances[0]
 
-    def mutate(self):
-        self.centerLocs = torch.clip(self.centerLocs + torch.randn_like(self.centerLocs), min=0.0, max=1.0)
+    def mutate(self, alpha=0.1):
+        maxPos = torch.ones_like(self.centerLocs)
+        maxPos[..., 0] = maxPos[..., 0] * 5
+        maxPos[..., 1] = maxPos[..., 1] * 4
+        maxPos[..., 2] = maxPos[..., 2] * 2
+        self.centerLocs = torch.clip(self.centerLocs + alpha * torch.randn_like(self.centerLocs), min=0.0, max=maxPos)
         self.centerMats = torch.round(torch.clip(self.centerMats + torch.randn_like(self.centerMats), min=1, max=4))
         
     def clone(self):
@@ -73,7 +84,6 @@ class GeneticAlgorithm():
         #     writer.writerow(["Iteration", "RMS", "Repeat"])
 
         for j in range(repeat):
-            self.population = self.randomSample()
             maxDistance = 0.0
             for i in range(iterations):
                 tmpDistance = self.select()

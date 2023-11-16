@@ -2,6 +2,16 @@ import numpy as np
 import torch 
 from itertools import combinations
 
+"""
+    masses: (n x 4 x 3)
+    n = number of masses,
+    each mass has a mass (stored in first index), acceleration, velocity, and position
+
+    springs: (m x 4)
+    m = number of springs,
+    each row ~ (massIndex1, massIndex2, k spring constant, rest length)
+"""
+
 def generateMasses(massLocs, massVals):
     numMasses = len(massLocs)
     masses = np.zeros((numMasses, 4, 3))
@@ -117,14 +127,15 @@ def batch_assign_materials_to_masses(batch_masses, batch_center_positions, batch
     return batch_mass_materials
 
 def batch_compute_spring_parameters(batch_springs, batch_mass_materials):
-    batch_idx1, batch_idx2 = batch_springs[..., 0].long(), batch_springs[..., 1].long()
+    # batch_idx1, batch_idx2 = batch_springs[..., 0].long(), batch_springs[..., 1].long()
+    batch_idx1 = batch_springs[..., 0].long()
 
     # Gather the material properties for each mass of each spring in each robot
     batch_material1 = batch_mass_materials[torch.arange(batch_mass_materials.size(0))[:, None, None], batch_idx1[..., None].expand(-1, -1, batch_mass_materials.size(-1))]
-    batch_material2 = batch_mass_materials[torch.arange(batch_mass_materials.size(0))[:, None, None], batch_idx2[..., None].expand(-1, -1, batch_mass_materials.size(-1))]
+    # batch_material2 = batch_mass_materials[torch.arange(batch_mass_materials.size(0))[:, None, None], batch_idx2[..., None].expand(-1, -1, batch_mass_materials.size(-1))]
 
     # Calculate the average properties for each spring
-    batch_spring_properties = (batch_material1 + batch_material2) / 2
+    batch_spring_properties = batch_material1
     return batch_spring_properties
 
 def buildBots(masses, springs, popCenterLocs, popCenterMats):
@@ -140,6 +151,7 @@ def buildBots(masses, springs, popCenterLocs, popCenterMats):
     # Compute spring parameters for each robot
     popSprings = springs.reshape(populationSize, ...) # Tensor of shape (num_robots, num_springs, 3)
     popSpringProperties = batch_compute_spring_parameters(popSprings, pop_mass_materials)
+    print(popSpringProperties.size())
     return popSpringProperties
 
 def computeFrictionForces(masses, netForces, groundCollisionForces, mu_s, mu_k):
