@@ -108,7 +108,7 @@ def computeGravityForces(masses):
     gravityForces[:, 2] = -9.81 * masses[:, 0, 0]
     return gravityForces
 
-def computeGroundCollisionForces(masses, K_g=10000):
+def computeGroundCollisionForces(masses, K_g=5000):
     N = masses.size(0)
     groundCollisionForces = torch.zeros((N, 3))#.cuda()
     groundCollisionForces[masses[:, 3, 2] < 0, 2] = -masses[masses[:, 3, 2] < 0, 3, 2] * K_g
