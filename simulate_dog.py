@@ -28,7 +28,7 @@ class MassSpringSystem:
 
         # self.masses = masses.clone()
         # print("init edges: ", self.edges)
-
+    
     def update_vertices(self):
         self.vertices = self.masses[:, 3, :]
         # print("vertices: ", self.vertices)
@@ -51,8 +51,6 @@ class MassSpringSystem:
         netForces += computeGravityForces(self.masses)  # Gravity forces
         groundCollisionForces = computeGroundCollisionForces(self.masses)
         netForces += groundCollisionForces  # Ground collision forces
-        # print(netForces)
-        # Compute friction forces and apply only to the masses at or below ground level
         # Compute friction forces and apply only to the masses at or below ground level
         frictionForces = computeFrictionForces(self.masses, netForces, groundCollisionForces, mu_s, mu_k)
         ground_indices = (self.masses[:, 3, 2] <= 0)
@@ -77,7 +75,7 @@ class MassSpringSystem:
     def updateSprings(self, w, T):
         # Update spring constant
         self.springs[self.materials == 1, 2] = 1000
-        self.springs[self.materials == 2, 2,] = 2000
+        self.springs[self.materials == 2, 2] = 2000
         self.springs[self.materials == 3, 2] = 5000
         self.springs[self.materials == 4, 2] = 5000
         # Update resting lengths
@@ -85,6 +83,31 @@ class MassSpringSystem:
         self.springs[self.materials == 2, 3] = self.og[self.materials == 2]
         self.springs[self.materials == 3, 3] = self.og[self.materials == 3] * (1 + 0.25 * np.sin(w*T))
         self.springs[self.materials == 4, 3] = self.og[self.materials == 4] * (1 + 0.25 * np.sin(w*T+torch.pi))
+
+def concatenate_masses_and_springs(masses, springs, n_copies):
+    # Check if n_copies is valid
+    if n_copies < 1:
+        raise ValueError("Number of copies should be at least 1")
+
+    # Initialize with the original masses and springs
+    concatenated_masses = masses.clone()
+    concatenated_springs = springs.clone()
+
+    num_masses = masses.shape[0]
+    print(num_masses)
+    for i in range(1, n_copies):
+        # Update indices for springs
+        new_springs = springs.clone()
+        print(i * num_masses)
+        new_springs[:, :2] = new_springs[:, :2] + (num_masses*i)
+        print("NEW SPRINGS: ", new_springs )
+        # Concatenate masses and springs
+        concatenated_masses = torch.cat([concatenated_masses, masses], dim=0)
+        concatenated_springs = torch.cat([concatenated_springs, new_springs], dim=0)
+
+
+    return concatenated_masses, concatenated_springs
+
 
 
 def generateSprings(massLocations, massIdxs):
@@ -155,7 +178,7 @@ def main():
     # Front half of dog
     og = massLocations.copy()
     for x,y,z in og:
-        massLocations.append((x +4, y, z))
+        massLocations.append((x + 4, y, z))
 
     # print(len(massLocations))
     lefthip_masses = np.array([0, 1, 4, 5, 8, 9, 12, 13]) + 18
@@ -176,18 +199,15 @@ def main():
     springs = np.concatenate((lefthip_springs, middle_springs, righthip_springs, frontlegs, 
                               lefthip2_springs, middle2_springs, righthip2_springs, backlegs, torso_springs), axis=0)
 
-    grid_dimensions = (1, 1)
-    spacing = 3 # adjust this value for the distance between cubes in the grid
+    
+    
+    masses = torch.tensor(masses, dtype=torch.float)
+    springs = torch.tensor(springs, dtype=torch.float)
 
-    objs = []
+    masses, springs = concatenate_masses_and_springs(masses, springs, 10)
 
-    for i in range(grid_dimensions[0]):
-        for j in range(grid_dimensions[1]):
-        
-            masses = torch.tensor(masses, dtype=torch.float)
-            springs = torch.tensor(springs, dtype=torch.float)
-            materials = torch.randint(1, 4, size=(springs.size()[0],))
-            objs.append(MassSpringSystem(masses, springs, materials))
+    materials = torch.randint(1, 4, size=(springs.size()[0],))
+    dog = (MassSpringSystem(masses, springs, materials))
 
     
     # print(springs.size())
@@ -196,15 +216,22 @@ def main():
     # og = springs[:, 3].clone()
     # print(og)
     
-    dt = 0.0001
+    dt = 0.001
     T = 0
+    N = masses.size(0)
 
+    # Initialization of Masses and Springs
+
+    # print(len(objs))
     while True:
         
-       
-        for obj in objs:
-            obj.updateSprings(w, T)
-            obj.simulate(dt)
+
+        dog.updateSprings(w, T)
+        dog.simulate(dt)
+
+        
+        
+        
 
         T += dt
 

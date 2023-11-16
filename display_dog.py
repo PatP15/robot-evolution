@@ -345,8 +345,7 @@ def main():
         
         
         draw_checkered_ground(30, 30)
-        # print(cube.edges)
-        # print(len(objs))
+
         
         dog.updateSprings(w, T)
         dog.simulate(dt)
