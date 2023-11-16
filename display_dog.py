@@ -75,7 +75,7 @@ class MassSpringSystem:
     def updateSprings(self, w, T):
         # Update spring constant
         self.springs[self.materials == 1, 2] = 1000
-        self.springs[self.materials == 2, 2,] = 2000
+        self.springs[self.materials == 2, 2] = 2000
         self.springs[self.materials == 3, 2] = 5000
         self.springs[self.materials == 4, 2] = 5000
         # Update resting lengths
