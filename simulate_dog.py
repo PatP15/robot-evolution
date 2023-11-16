@@ -17,57 +17,74 @@ camera_translation = [0, 0]  # Translation offsets for panning
 
 
 class MassSpringSystem:
-    def __init__(self, masses, springs):
+    def __init__(self, masses, springs, materials):
         # print("init: ", springs)
-        self.update_vertices(masses)
-        self.create_edges(springs)
+        self.masses = masses.clone()
+        self.springs = springs.clone()
+        self.materials = materials.clone()
+        self.og = springs[:, 3].clone()
+        self.update_vertices()
+        self.create_edges()
+
+        # self.masses = masses.clone()
         # print("init edges: ", self.edges)
 
-    def update_vertices(self, masses):
-        self.masses = masses
-        self.vertices = masses[:, 3, :]
+    def update_vertices(self):
+        self.vertices = self.masses[:, 3, :]
         # print("vertices: ", self.vertices)
-        self.vertex_sizes = masses[:, 0, 0]/20
+        self.vertex_sizes = self.masses[:, 0, 0]/20
         # print("vertex_sizes ", self.vertex_sizes)
 
-    def create_edges(self, springs):
+    def create_edges(self):
         # print("create_edges: ", springs)
-        self.springs = springs
         # print(self.springs[:, :2])
         self.edges = self.springs[:, :2]  # Get the first two columns which are the vertex indices for each spring
         # print("edges: ", self.edges)
 
 
     def simulate(self, dt):
+        mu_s = 1  # Static friction coefficient
+        mu_k = 0.5 # Kinetic friction coefficient
 
-        netForces = 0
-        netForces = netForces + compute_net_spring_forces(self.masses, self.springs) # Add spring forces
-        netForces = netForces + computeGravityForces(self.masses) # Add gravity
-        netForces = netForces + computeGroundCollisionForces(self.masses)
-        # Integration Step
-        # Calculate Acceleration
-        self.masses[:, 1] = torch.div(netForces, self.masses[:, 0, 0].unsqueeze(-1))
-        # Calculate Velocity
-        self.masses[:, 2] = self.masses[:, 2] + self.masses[:, 1] * dt
-        # Calculate Position
-        self.masses[:, 3] = self.masses[:, 3] + self.masses[:, 2] * dt
+        # Compute forces
+        netForces = compute_net_spring_forces(self.masses, self.springs)  # Spring forces
+        netForces += computeGravityForces(self.masses)  # Gravity forces
+        groundCollisionForces = computeGroundCollisionForces(self.masses)
+        netForces += groundCollisionForces  # Ground collision forces
+        # print(netForces)
+        # Compute friction forces and apply only to the masses at or below ground level
+        # Compute friction forces and apply only to the masses at or below ground level
+        frictionForces = computeFrictionForces(self.masses, netForces, groundCollisionForces, mu_s, mu_k)
+        ground_indices = (self.masses[:, 3, 2] <= 0)
+
+        # Update net forces with friction forces for ground-contacting masses
+        netForces[ground_indices, :2] += frictionForces[ground_indices, :2]
+
+        # Integration step
+        # Calculate acceleration
+        self.masses[:, 1] = netForces / self.masses[:, 0, 0].unsqueeze(-1)
+        # Calculate velocity
+        self.masses[:, 2] += self.masses[:, 1] * dt
+        # Calculate position
+        self.masses[:, 3] += self.masses[:, 2] * dt
+
 
         # Apply dampening
         self.masses[:, 2] = self.masses[:, 2] * 0.999
 
-# Update spring properties in-place according to material
+    # Update spring properties in-place according to material
 
-def updateSprings(springs, og, w, T, materials):
-    # Update spring constant
-    springs[materials == 1, 2] = 1000
-    springs[materials == 2, 2,] = 20000
-    springs[materials == 3, 2] = 5000
-    springs[materials == 4, 2] = 5000
-    # Update resting lengths
-    springs[materials == 1, 3] = og[materials == 1]
-    springs[materials == 2, 3] = og[materials == 2]
-    springs[materials == 3, 3] = og[materials == 3] * (1 + 0.25 * np.sin(w*T))
-    springs[materials == 4, 3] = og[materials == 4] * (1 + 0.25 * np.sin(w*T+torch.pi))
+    def updateSprings(self, w, T):
+        # Update spring constant
+        self.springs[self.materials == 1, 2] = 1000
+        self.springs[self.materials == 2, 2,] = 2000
+        self.springs[self.materials == 3, 2] = 5000
+        self.springs[self.materials == 4, 2] = 5000
+        # Update resting lengths
+        self.springs[self.materials == 1, 3] = self.og[self.materials == 1]
+        self.springs[self.materials == 2, 3] = self.og[self.materials == 2]
+        self.springs[self.materials == 3, 3] = self.og[self.materials == 3] * (1 + 0.25 * np.sin(w*T))
+        self.springs[self.materials == 4, 3] = self.og[self.materials == 4] * (1 + 0.25 * np.sin(w*T+torch.pi))
 
 
 def generateSprings(massLocations, massIdxs):
@@ -169,69 +186,28 @@ def main():
         
             masses = torch.tensor(masses, dtype=torch.float)
             springs = torch.tensor(springs, dtype=torch.float)
-            
-            objs.append(MassSpringSystem(masses, springs))
+            materials = torch.randint(1, 4, size=(springs.size()[0],))
+            objs.append(MassSpringSystem(masses, springs, materials))
 
-    materials = torch.randint(1, 4, size=(springs.size()[0],))
+    
     # print(springs.size())
     # print(materials.size())
     w = 2*np.pi
-    og = springs[:, 3].clone()
+    # og = springs[:, 3].clone()
     # print(og)
     
-    dt = 0.002
+    dt = 0.0001
     T = 0
-    N = masses.size(0)
-    netForces = torch.zeros((N, 3))
-    omega = 20
 
-    # og = springs[:, 3].clone()
-    pygame.init()
-    display = (800, 600)
-    pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
-    gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
-    glTranslatef(0.0, 0.0, -12) # Adjusted to have a top-down view
-    # Initialization of Masses and Springs
-
-    # print(len(objs))
     while True:
-        updateSprings(springs, og, w, T, materials)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                return
-            mouse_button_callback(event)
-            if mouse_dragging:
-                mouse_motion_callback(event)
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glLoadIdentity()
-        gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
-        glTranslatef(camera_translation[0], camera_translation[1], -camera_distance)
-        glRotatef(angle_x, 1, 0, 0)
-        glRotatef(angle_y, 0, 0, 1)
-        # print(cube.edges)
         
-        
-        draw_checkered_ground(30, 30)
-        # print(cube.edges)
-
+       
         for obj in objs:
+            obj.updateSprings(w, T)
             obj.simulate(dt)
-            draw_shadow(obj)
-
-        for obj in objs:
-
-            draw_cube(obj)
-            # draw_cube_faces(cube)
-            draw_spheres_at_vertices(obj)
-        
-        
-        
 
         T += dt
-        pygame.display.flip()
-        pygame.time.wait(1)
+
 
 if __name__ == "__main__":
     main()
