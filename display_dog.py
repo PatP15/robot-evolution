@@ -28,7 +28,7 @@ class MassSpringSystem:
 
         # self.masses = masses.clone()
         # print("init edges: ", self.edges)
-
+    
     def update_vertices(self):
         self.vertices = self.masses[:, 3, :]
         # print("vertices: ", self.vertices)
@@ -51,14 +51,12 @@ class MassSpringSystem:
         netForces += computeGravityForces(self.masses)  # Gravity forces
         groundCollisionForces = computeGroundCollisionForces(self.masses)
         netForces += groundCollisionForces  # Ground collision forces
-        # print(netForces)
-        # Compute friction forces and apply only to the masses at or below ground level
         # Compute friction forces and apply only to the masses at or below ground level
         frictionForces = computeFrictionForces(self.masses, netForces, groundCollisionForces, mu_s, mu_k)
         ground_indices = (self.masses[:, 3, 2] <= 0)
 
         # Update net forces with friction forces for ground-contacting masses
-        netForces[ground_indices, :2] += frictionForces[ground_indices, :2]
+        netForces[ground_indices, :2] = frictionForces[ground_indices, :2]
 
         # Integration step
         # Calculate acceleration
@@ -86,6 +84,29 @@ class MassSpringSystem:
         self.springs[self.materials == 3, 3] = self.og[self.materials == 3] * (1 + 0.25 * np.sin(w*T))
         self.springs[self.materials == 4, 3] = self.og[self.materials == 4] * (1 + 0.25 * np.sin(w*T+torch.pi))
 
+def concatenate_masses_and_springs(masses, springs, n_copies):
+    # Check if n_copies is valid
+    if n_copies < 1:
+        raise ValueError("Number of copies should be at least 1")
+
+    # Initialize with the original masses and springs
+    concatenated_masses = masses.clone()
+    concatenated_springs = springs.clone()
+
+    num_masses = masses.shape[0]
+    print(num_masses)
+    for i in range(1, n_copies):
+        # Update indices for springs
+        new_springs = springs.clone()
+        print(i * num_masses)
+        new_springs[:, :2] = new_springs[:, :2] + (num_masses*i)
+        print("NEW SPRINGS: ", new_springs )
+        # Concatenate masses and springs
+        concatenated_masses = torch.cat([concatenated_masses, masses], dim=0)
+        concatenated_springs = torch.cat([concatenated_springs, new_springs], dim=0)
+
+
+    return concatenated_masses, concatenated_springs
 
 def draw_checkered_ground(size, squares):
     half_size = size / 2
@@ -242,7 +263,7 @@ def main():
     # Front half of dog
     og = massLocations.copy()
     for x,y,z in og:
-        massLocations.append((x +4, y, z))
+        massLocations.append((x + 4, y, z))
 
     # print(len(massLocations))
     lefthip_masses = np.array([0, 1, 4, 5, 8, 9, 12, 13]) + 18
@@ -266,15 +287,21 @@ def main():
     grid_dimensions = (1, 1)
     spacing = 3 # adjust this value for the distance between cubes in the grid
 
-    objs = []
+    # objs = []
+    
+    
+    masses = torch.tensor(masses, dtype=torch.float)
+    springs = torch.tensor(springs, dtype=torch.float)
 
-    for i in range(grid_dimensions[0]):
-        for j in range(grid_dimensions[1]):
-        
-            masses = torch.tensor(masses, dtype=torch.float)
-            springs = torch.tensor(springs, dtype=torch.float)
-            materials = torch.randint(1, 4, size=(springs.size()[0],))
-            objs.append(MassSpringSystem(masses, springs, materials))
+    masses, springs = concatenate_masses_and_springs(masses, springs, 10)
+    # print("mass", len(masses))
+    # print("dog1: ", masses[:36])
+    # print("dog2: ", masses[36:])
+    print("spring", len(springs))
+    print("dog1: ", springs[:len(springs)//2])
+    print("dog2: ", springs[len(springs)//2:])
+    materials = torch.randint(1, 4, size=(springs.size()[0],))
+    dog = (MassSpringSystem(masses, springs, materials))
 
     
     # print(springs.size())
@@ -283,7 +310,7 @@ def main():
     # og = springs[:, 3].clone()
     # print(og)
     
-    dt = 0.001
+    dt = 0.002
     T = 0
     N = masses.size(0)
     netForces = torch.zeros((N, 3))
@@ -320,16 +347,15 @@ def main():
         draw_checkered_ground(30, 30)
         # print(cube.edges)
         # print(len(objs))
-        for obj in objs:
-            obj.updateSprings(w, T)
-            obj.simulate(dt)
-            draw_shadow(obj)
+        
+        dog.updateSprings(w, T)
+        dog.simulate(dt)
+        draw_shadow(dog)
 
-        for obj in objs:
 
-            draw_cube(obj)
-            # draw_cube_faces(cube)
-            draw_spheres_at_vertices(obj)
+        draw_cube(dog)
+        # draw_cube_faces(cube)
+        draw_spheres_at_vertices(dog)
         
         
         

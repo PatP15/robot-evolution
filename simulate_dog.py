@@ -58,7 +58,7 @@ class MassSpringSystem:
         ground_indices = (self.masses[:, 3, 2] <= 0)
 
         # Update net forces with friction forces for ground-contacting masses
-        netForces[ground_indices, :2] += frictionForces[ground_indices, :2]
+        netForces[ground_indices, :2] = frictionForces[ground_indices, :2]
 
         # Integration step
         # Calculate acceleration
