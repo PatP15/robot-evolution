@@ -46,7 +46,7 @@ class MassSpringSystem:
 
     def simulate(self, dt):
         mu_s = 1  # Static friction coefficient
-        mu_k = 0.5 # Kinetic friction coefficient
+        mu_k = 1 # Kinetic friction coefficient
 
         # Compute forces
         netForces = compute_net_spring_forces(self.masses, self.springs)  # Spring forces
@@ -55,12 +55,12 @@ class MassSpringSystem:
         groundCollisionForces = computeGroundCollisionForces(self.masses)
         netForces = netForces + groundCollisionForces  # Ground collision forces
         # Compute friction forces and apply only to the masses at or below ground level
-        # frictionForces = computeFrictionForces(self.masses, netForces, groundCollisionForces, mu_s, mu_k)
-        frictionForces = newComputeFrictionForces(self.masses, gravityForces, mu_k)
+        frictionForces = computeFrictionForces(self.masses, netForces, groundCollisionForces, mu_s, mu_k)
+        # frictionForces = newComputeFrictionForces(self.masses, gravityForces, mu_k)
         ground_indices = (self.masses[:, 3, 2] <= 0)
 
         # Update net forces with friction forces for ground-contacting masses
-        netForces[ground_indices, :2] = netForces[ground_indices, :2] + frictionForces[ground_indices, :2]
+        netForces[ground_indices, :2] = frictionForces[ground_indices, :2]
 
         # Integration step
         # Calculate acceleration
@@ -224,12 +224,10 @@ def makeOneDog():
                      (1, 0, -1),
                      (1, 1, -1),
                      (1, 3, -1),
-                     (1, 4, -1),
-                     (0.5, 0.5, -2),
-                     (0.5, 3.5, -2)]
-    massLocations = [(x, y, z + 2) for x, y, z in massLocations]
+                     (1, 4, -1)]
+    massLocations = [(x, y, z + 1) for x, y, z in massLocations]
 
-    massValues = [1] * 36
+    massValues = [1] * 32
     # print(massValues)
 
     lefthip_masses = [0, 1, 4, 5, 8, 9, 12, 13]
@@ -241,18 +239,18 @@ def makeOneDog():
     righthip_masses = [2,3,6,7,10,11,14,15]
     righthip_springs = generateSprings(massLocations, righthip_masses)
 
-    frontlegs = np.array([
-        [12, 16, 10000, math.sqrt(1.5)],
-        [13, 16, 10000, math.sqrt(1.5)],
-        [8, 16, 10000, math.sqrt(1.5)],
-        [9, 16, 10000, math.sqrt(1.5)],
-        [10, 17, 10000, math.sqrt(1.5)],
-        [11, 17, 10000, math.sqrt(1.5)],
-        [14, 17, 10000, math.sqrt(1.5)],
-        [15, 17, 10000, math.sqrt(1.5)],
-    ])
-    backlegs = frontlegs.copy()
-    backlegs[:, :2] += 18
+    # frontlegs = np.array([
+    #     [12, 16, 10000, math.sqrt(1.5)],
+    #     [13, 16, 10000, math.sqrt(1.5)],
+    #     [8, 16, 10000, math.sqrt(1.5)],
+    #     [9, 16, 10000, math.sqrt(1.5)],
+    #     [10, 17, 10000, math.sqrt(1.5)],
+    #     [11, 17, 10000, math.sqrt(1.5)],
+    #     [14, 17, 10000, math.sqrt(1.5)],
+    #     [15, 17, 10000, math.sqrt(1.5)],
+    # ])
+    # backlegs = frontlegs.copy()
+    # backlegs[:, :2] += 18
     # print(backlegs)
     # all_combinations = list(combinations(range(18), 2))
     # springs = np.array([[comb[0], comb[1], 10000, np.linalg.norm(np.array(massLocations[comb[0]]) - np.array(massLocations[comb[1]]))] for comb in all_combinations])
@@ -263,23 +261,23 @@ def makeOneDog():
         massLocations.append((x + 4, y, z))
 
     # print(len(massLocations))
-    lefthip_masses = np.array([0, 1, 4, 5, 8, 9, 12, 13]) + 18
+    lefthip_masses = np.array([0, 1, 4, 5, 8, 9, 12, 13]) + len(og)
     lefthip2_springs = generateSprings(massLocations, lefthip_masses)
     
-    middle_masses = np.array([1,2,5,6,9,10,13,14]) + 18
+    middle_masses = np.array([1,2,5,6,9,10,13,14]) + len(og)
     middle2_springs = generateSprings(massLocations, middle_masses)
 
-    righthip_masses = np.array([2,3,6,7,10,11,14,15]) + 18
+    righthip_masses = np.array([2,3,6,7,10,11,14,15]) + len(og)
     righthip2_springs = generateSprings(massLocations, righthip_masses)
 
     torso_masses = np.array([1, 2, 9, 10])
-    torso_masses = np.concatenate((torso_masses, torso_masses + 18))
+    torso_masses = np.concatenate((torso_masses, torso_masses + len(og)))
     torso_springs = generateSprings(massLocations, torso_masses)
 
     masses = generateMasses(massLocations, massValues)
 
-    springs = np.concatenate((lefthip_springs, middle_springs, righthip_springs, frontlegs, 
-                              lefthip2_springs, middle2_springs, righthip2_springs, backlegs, torso_springs), axis=0)
+    springs = np.concatenate((lefthip_springs, middle_springs, righthip_springs, 
+                              lefthip2_springs, middle2_springs, righthip2_springs, torso_springs), axis=0)
 
     grid_dimensions = (1, 1)
     spacing = 3 # adjust this value for the distance between cubes in the grid
@@ -315,7 +313,7 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
     # print(materials.size())
     dog = (MassSpringSystem(masses, springs, materials))
 
-    initial_positions = dog.masses[::36, 3, :].clone()
+    initial_positions = dog.masses[::32, 3, :].clone()
     # print("Materials:\n\n", materials)
     # print("Springs:\n\n", springs)
 
@@ -401,4 +399,4 @@ if __name__ == "__main__":
     popCenterMats = torch.tensor(bestBot[1]).unsqueeze(0).to(device)
 
     print("Size: ", popCenterLocs.size(), popCenterMats.size()  )
-    simulate(popCenterLocs, popCenterMats, visualize=False)
+    simulate(popCenterLocs, popCenterMats, visualize=True)

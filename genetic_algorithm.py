@@ -34,7 +34,7 @@ class GeneticAlgorithm():
 
     def select(self):
         distances = self.evaluate()
-        distances[distances > 90] = 0
+        distances[distances > 100] = 0
         # Optionally normalize the tensor to make it a probability distribution
         # distances = distances / distances.sum()
 

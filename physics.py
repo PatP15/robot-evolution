@@ -175,7 +175,7 @@ def newComputeFrictionForces(masses, gravityForces, mu):
     moving = torch.norm(velocities, dim=1) > 1e-4
     # Normalize the velocity vectors and multiply by the friction coefficient and normal force
     normalizedVelocities = velocities / (velocities.norm(dim=1, keepdim=True) + 1e-8)
-    frictionalForces = -normalizedVelocities * mu * normalForces.unsqueeze(-1) * moving.float()
+    frictionalForces = -normalizedVelocities * mu * normalForces.unsqueeze(-1) * moving.float().unsqueeze(-1)
     return frictionalForces
 
 def computeFrictionForces(masses, netForces, groundCollisionForces, mu_s, mu_k):
