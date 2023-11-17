@@ -129,7 +129,8 @@ class GeneticAlgorithm():
                 if tmpDistance > maxDistance:
                     maxDistance = tmpDistance
                     bestBot = (self.centerLocs[0].detach(), self.centerMats[0].detach())
-
+                    with open("best_robot.pkl", 'wb') as f:
+                        pickle.dump(bestBot, f) 
                     with open("evolve_robot.csv", 'a', newline='') as outFile:
                         writer = csv.writer(outFile)
                         writer.writerow([i*self.populationSize, maxDistance.item(), j])
@@ -142,8 +143,8 @@ class GeneticAlgorithm():
                     writer = csv.writer(outFile)
                     writer.writerow([(i+1)*self.populationSize, maxDistance.item(), j])
 
-            with open("best_robot.pkl", 'wb') as f:
-                pickle.dump(bestBot, f)
+                with open("best_robot.pkl", 'wb') as f:
+                    pickle.dump(bestBot, f)
 
             self.centerLocs, self.centerMats = self.randomSample()
             print("Max Distance: ", maxDistance)
