@@ -169,7 +169,7 @@ def assignMaterials(masses, springs, popCenterLocs, popCenterMats):
 
 def computeFrictionForces(masses, netForces, groundCollisionForces, mu_s, mu_k):
     N = masses.size(0)
-    frictionForces = torch.zeros((N, 3))
+    frictionForces = torch.zeros((N, 3)).cuda()
 
     # Indices where mass is at or below the ground
     ground_indices = (masses[:, 3, 2] <= 0)
