@@ -59,7 +59,7 @@ class MassSpringSystem:
 
         # Update net forces with friction forces for ground-contacting masses
         netForces[ground_indices, :2] = frictionForces[ground_indices, :2]
-        print(netForces)
+        # print(netForces)
         # Integration step
         # Calculate acceleration
         self.masses[:, 1] = netForces / self.masses[:, 0, 0].unsqueeze(-1)
@@ -71,7 +71,7 @@ class MassSpringSystem:
 
         # Apply dampening
         self.masses[:, 2] = self.masses[:, 2] * 0.999
-        print(self.masses[:, 2])
+        # print(self.masses[:, 2])
     # Update spring properties in-place according to material
 
     def updateSprings(self, w, T):
@@ -399,4 +399,4 @@ if __name__ == "__main__":
     popCenterMats = torch.tensor(bestBot[1]).unsqueeze(0).to(device)
 
     print("Size: ", popCenterLocs.size(), popCenterMats.size()  )
-    simulate(popCenterLocs, popCenterMats, visualize=False)
+    simulate(popCenterLocs, popCenterMats, visualize=True)
