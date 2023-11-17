@@ -153,7 +153,7 @@ class GeneticAlgorithm():
             print("Best Bot: ", bestBot)
 
 def main():
-    ga = GeneticAlgorithm(100, 6)
+    ga = GeneticAlgorithm(50, 6)
     ga.run(iterations=50)
 
 if __name__ == "__main__":
