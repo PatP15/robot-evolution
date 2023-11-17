@@ -80,8 +80,6 @@ class HillClimber():
             bestBot = None
             for i in range(iterations):
                 tmpDistance = self.select()
-                self.mutate()
-                self.clone() 
 
                 print("Eval: ", i*self.populationSize, ": ", tmpDistance.item())
                 if tmpDistance > maxDistance:
@@ -92,6 +90,9 @@ class HillClimber():
                     with open("evolve_robot_hc.csv", 'a', newline='') as outFile:
                         writer = csv.writer(outFile)
                         writer.writerow([i*self.populationSize, maxDistance.item(), j])
+                
+                self.mutate()
+                self.clone() 
 
             tmpDistance = self.select()
             if tmpDistance > maxDistance:
