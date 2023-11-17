@@ -297,7 +297,7 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
         4: k=5000 b=0.25 c=pi
         w=2*pi
     '''
-    # print(popCenterLocs)
+    print("Pop device: ", popCenterLocs.device)
     populationSize = popCenterLocs.size()[0]
     masses, springs = makeOneDog()
     masses, springs = concatenate_masses_and_springs(masses, springs, populationSize)
