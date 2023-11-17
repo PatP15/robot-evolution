@@ -35,7 +35,7 @@ class RandomSearch():
 
     def select(self):
         distances = self.evaluate()
-
+        distances[distances > 100] = 0
         # Optionally normalize the tensor to make it a probability distribution
         # distances = distances / distances.sum()
 
@@ -70,9 +70,9 @@ class RandomSearch():
                     bestBot = (np.array(self.centerLocs[0].cpu()), np.array(self.centerMats[0].cpu()))
                     with open("best_robot_rs.pkl", 'wb') as f:
                         pickle.dump(bestBot, f) 
-                    with open("evolve_robot_rs.csv", 'a', newline='') as outFile:
-                        writer = csv.writer(outFile)
-                        writer.writerow([i*self.populationSize, maxDistance.item(), j])
+                with open("evolve_robot_rs.csv", 'a', newline='') as outFile:
+                    writer = csv.writer(outFile)
+                    writer.writerow([i*self.populationSize, maxDistance.item(), j])
                 
                 self.centerLocs, self.centerMats = self.randomSample()
 
@@ -92,8 +92,8 @@ class RandomSearch():
             print("Best Bot: ", bestBot)
 
 def main():
-    rs = RandomSearch(1000, 12)
-    rs.run(iterations=25)
+    rs = RandomSearch(10, 6)
+    rs.run(iterations=50)
 
 if __name__ == "__main__":
     main()
