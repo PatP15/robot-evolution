@@ -24,7 +24,7 @@ class GeneticAlgorithm():
         centerLocations[..., 1] = centerLocations[..., 1] * 4
         centerLocations[..., 2] = centerLocations[..., 2] * 2
         centerMaterials = torch.randint(low=1, high=4, size=(self.populationSize, self.numCenters, 1), dtype=torch.float)
-        return centerLocations, centerMaterials
+        return centerLocations.to("cuda:0"), centerMaterials.to("cuda:0")
 
     def evaluate(self):
         return simulate(self.centerLocs, self.centerMats)
@@ -65,8 +65,8 @@ class GeneticAlgorithm():
 
     def recombine(self, mc):
         # Recombine Center Locations
-        print("Before recombine: ", self.centerLocs.shape)
-        print("centerLocs: ", self.centerLocs)  
+        # print("Before recombine: ", self.centerLocs.shape)
+        # print("centerLocs: ", self.centerLocs)
         # tempCenterLocs = self.centerLocs.reshape((self.centerLocs.shape[0] // 2, -1))
         split = self.centerLocs.shape[0] // 2
         parents1 = self.centerLocs[:split, :, ...]
@@ -74,15 +74,15 @@ class GeneticAlgorithm():
             split += 1
         
         parents2 = self.centerLocs[split:, :, ...]
-        print("parents1: ", parents1)
-        print("parents2: ", parents2)
+        # print("parents1: ", parents1)
+        # print("parents2: ", parents2)
         children1 = mc * parents1 + (1 - mc) * parents2
         children2 = (1 - mc) * parents1 + mc * parents2
         children = torch.concat([children1, children2], axis=0)
         
         # children = children.reshape((-1, 2, self.centerLocs.shape[2]))
-        print("children: ", children)
-        print("children shape: ", children.shape)
+        # print("children: ", children)
+        # print("children shape: ", children.shape)
         self.centerLocs = torch.concat([self.centerLocs, children], axis=0)
 
         # Recombine Center Materials
@@ -92,15 +92,15 @@ class GeneticAlgorithm():
         if self.centerMats.shape[0] % 2 == 1:
             split += 1
         parents2 = self.centerMats[split:, :, ...]
-        print("parents1: ", parents1)
-        print("parents2: ", parents2)
+        # print("parents1: ", parents1)
+        # print("parents2: ", parents2)
         children1 = mc * parents1 + (1 - mc) * parents2
         children2 = (1 - mc) * parents1 + mc * parents2
         children = torch.concat([children1, children2], axis=0)
         # children = children.reshape((-1, 2, self.centerMats.shape[2]))
         self.centerMats = torch.concat([self.centerMats, children], axis=0)
 
-        print("After recombine: self center locs ", self.centerLocs.size(), self.centerMats.size())
+        # print("After recombine: self center locs ", self.centerLocs.size(), self.centerMats.size())
 
     def run(self, iterations=100, repeat=1):
         # with open(outPath + "gold_ga2_function.csv", 'w', newline='') as outFile:

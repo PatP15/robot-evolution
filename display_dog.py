@@ -301,6 +301,8 @@ def simulate(popCenterLocs, popCenterMats):
     populationSize = popCenterLocs.size()[0]
     masses, springs = makeOneDog()
     masses, springs = concatenate_masses_and_springs(masses, springs, populationSize)
+    masses = masses.to("cuda:0")
+    springs = springs.to("cuda:0")
     # print("spring", len(springs))
     # print("dog1: ", springs[:len(springs)//2])
     # print("dog2: ", springs[len(springs)//2:])
@@ -375,7 +377,7 @@ def simulate(popCenterLocs, popCenterMats):
         pygame.time.wait(1)
     final_positions = dog.masses[::36, 3, :].clone()
     distances = torch.norm(final_positions - initial_positions, dim=1)
-    print(distances)
+    # print(distances)
     return torch.tensor(np.array(distances))
 
 if __name__ == "__main__":
