@@ -6,6 +6,7 @@ from OpenGL.GLU import gluPerspective
 import numpy as np
 from itertools import combinations
 from physics import *
+import pickle
 import math
 # Camera variables
 angle_x = 0
@@ -382,8 +383,10 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
     return distances
 
 if __name__ == "__main__":
-    popCenterLocs = torch.tensor(np.array([[[0.0, 2.0, 1.0], [5.0, 2.0, 1.0]],
-                                           [[0.0, 2.0, 1.0], [5.0, 2.0, 1.0]]]), dtype=torch.float)
-    popCenterMats = torch.tensor(np.array([[[1.0], [4.0]],
-                                           [[4.0], [1.0]]]), dtype=torch.float)
-    simulate(popCenterLocs, popCenterMats)
+    
+
+    with open("best_robot.pkl", 'rb') as f:
+        bestBot = pickle.load(f)
+    popCenterLocs = bestBot[0]
+    popCenterMats = bestBot[1]
+    simulate(popCenterLocs, popCenterMats, visualize=True)
