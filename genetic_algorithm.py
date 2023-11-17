@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from display_dog import simulate
 import csv 
+import pickle
 class GeneticAlgorithm():
 
     def __init__(self, populationSize, numCenters):
@@ -112,6 +113,7 @@ class GeneticAlgorithm():
 
         for j in range(repeat):
             maxDistance = 0.0
+            bestBot = None
             for i in range(iterations):
                 print("Iteration: ", i)
                 # print("Population Size: ", self.centerLocs.size()[0])
@@ -123,23 +125,27 @@ class GeneticAlgorithm():
 
                 print(i*self.populationSize, ": ", tmpDistance)
                 if tmpDistance > maxDistance:
-                  maxDistance = tmpDistance
-                  bestBot = (self.centerLocs[0], self.centerMats[0])
+                    maxDistance = tmpDistance
+                    bestBot = (self.centerLocs[0], self.centerMats[0])
 
-                with open("evolve_run.csv", 'a', newline='') as outFile:
-                    writer = csv.writer(outFile)
-                    writer.writerow([i*self.populationSize, i, j])
+                    with open("evolve_robot.csv", 'a', newline='') as outFile:
+                        writer = csv.writer(outFile)
+                        writer.writerow([i*self.populationSize, maxDistance, j])
 
             tmpDistance = self.select()
             if tmpDistance > maxDistance:
                 maxDistance = tmpDistance
                 bestBot = (self.centerLocs[0], self.centerMats[0])
-            print("Max Distance: ", maxDistance)
-            # Reset population
+                with open("evolve_robot.csv", 'a', newline='') as outFile:
+                    writer = csv.writer(outFile)
+                    writer.writerow([i*self.populationSize, maxDistance, j])
+
+            with open("best_robot.pkl", 'wb') as f:
+                pickle.dump(bestBot, f)
+
             self.centerLocs, self.centerMats = self.randomSample()
-            with open("evolve_run.csv", 'a', newline='') as outFile:
-                writer = csv.writer(outFile)
-                writer.writerow([bestBot])
+            print("Max Distance: ", maxDistance)
+            print("Best Bot: ", bestBot)
 
 def main():
     ga = GeneticAlgorithm(6, 4)
