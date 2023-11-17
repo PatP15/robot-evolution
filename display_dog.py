@@ -338,7 +338,7 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
     # Initialization of Masses and Springs
 
     # print(len(objs))
-    while T < 0.1:
+    while T < 5:
         # print("T: ", T)
         if visualize:
             for event in pygame.event.get():
