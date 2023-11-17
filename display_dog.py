@@ -96,7 +96,7 @@ def concatenate_masses_and_springs(masses, springs, n_copies):
     concatenated_springs = springs.clone()
 
     num_masses = masses.shape[0]
-    print(num_masses)
+    # print(num_masses)
     for i in range(1, n_copies):
         # Update indices for springs
         new_springs = springs.clone()
@@ -297,7 +297,7 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
         4: k=5000 b=0.25 c=pi
         w=2*pi
     '''
-    print("Pop device: ", popCenterLocs.device)
+    # print("Pop device: ", popCenterLocs.device)
     populationSize = popCenterLocs.size()[0]
     masses, springs = makeOneDog()
     masses, springs = concatenate_masses_and_springs(masses, springs, populationSize)
@@ -308,7 +308,7 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
     # print("dog2: ", springs[len(springs)//2:])
 
     materials = assignMaterials(masses, springs, popCenterLocs, popCenterMats) # torch.randint(1, 4, size=(springs.size()[0],))
-    print(materials.size())
+    # print(materials.size())
     dog = (MassSpringSystem(masses, springs, materials))
 
     initial_positions = dog.masses[::36, 3, :].clone()

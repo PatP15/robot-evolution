@@ -116,8 +116,8 @@ def computeGroundCollisionForces(masses, K_g=5000):
 
 def batch_assign_materials_to_masses(batch_masses, batch_center_positions, batch_material_properties):
     # Assuming the first dimension is the batch dimension (num_robots)
-    print(batch_masses.device)
-    print(batch_center_positions.device)
+    # print(batch_masses.device)
+    # print(batch_center_positions.device)
     batch_distances = torch.cdist(batch_masses, batch_center_positions)  # Shape (num_robots, num_masses, num_centers)
 
     # Find the index of the closest center for each mass in each robot
