@@ -338,7 +338,7 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
     # Initialization of Masses and Springs
 
     # print(len(objs))
-    while T < 0.1:
+    while T < 5:
         # print("T: ", T)
         if visualize:
             for event in pygame.event.get():
@@ -379,7 +379,7 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
     final_positions = dog.masses[::36, 3, :].clone()
     distances = torch.norm(final_positions - initial_positions, dim=1)
     # print(distances)
-    return torch.tensor(np.array(distances))
+    return distances
 
 if __name__ == "__main__":
     popCenterLocs = torch.tensor(np.array([[[0.0, 2.0, 1.0], [5.0, 2.0, 1.0]],
