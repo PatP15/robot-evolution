@@ -8,6 +8,7 @@ from itertools import combinations
 from physics import *
 import pickle
 import math
+from genetic_algorithm import device
 # Camera variables
 angle_x = 0
 angle_y = 0
@@ -15,7 +16,6 @@ mouse_dragging = False
 last_mouse_x, last_mouse_y = 0, 0
 camera_distance = 10  # Adjust this for initial zoom level
 camera_translation = [0, 0]  # Translation offsets for panning
-
 
 class MassSpringSystem:
     def __init__(self, masses, springs, materials):
@@ -302,8 +302,8 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
     populationSize = popCenterLocs.size()[0]
     masses, springs = makeOneDog()
     masses, springs = concatenate_masses_and_springs(masses, springs, populationSize)
-    masses = masses.to("cuda:0")
-    springs = springs.to("cuda:0")
+    masses = masses.to(device)
+    springs = springs.to(device)
     # print("spring", len(springs))
     # print("dog1: ", springs[:len(springs)//2])
     # print("dog2: ", springs[len(springs)//2:])

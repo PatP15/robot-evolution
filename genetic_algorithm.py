@@ -3,6 +3,8 @@ import numpy as np
 from display_dog import simulate
 import csv 
 import pickle
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
 class GeneticAlgorithm():
 
     def __init__(self, populationSize, numCenters):
@@ -25,7 +27,7 @@ class GeneticAlgorithm():
         centerLocations[..., 1] = centerLocations[..., 1] * 4
         centerLocations[..., 2] = centerLocations[..., 2] * 2
         centerMaterials = torch.randint(low=1, high=4, size=(self.populationSize, self.numCenters, 1), dtype=torch.float)
-        return centerLocations.to("cuda:0"), centerMaterials.to("cuda:0")
+        return centerLocations.to(device), centerMaterials.to(device)
 
     def evaluate(self):
         return simulate(self.centerLocs, self.centerMats)

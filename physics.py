@@ -1,6 +1,7 @@
 import numpy as np
 import torch 
 from itertools import combinations
+from genetic_algorithm import device
 
 """
     masses: (n x 4 x 3)
@@ -85,7 +86,7 @@ def compute_spring_forces(masses, springs):
 
 def aggregate_spring_forces(springs, forces, masses):
     N = masses.size(0)
-    force_accumulator = torch.zeros((N, 3)).cuda()
+    force_accumulator = torch.zeros((N, 3)).to(device)
 
     idx1 = springs[:, 0].long()
     idx2 = springs[:, 1].long()
@@ -104,13 +105,13 @@ def compute_net_spring_forces(masses, springs):
 
 def computeGravityForces(masses):
     N = masses.size(0)
-    gravityForces = torch.zeros((N, 3)).cuda()
+    gravityForces = torch.zeros((N, 3)).to(device)
     gravityForces[:, 2] = -9.81 * masses[:, 0, 0]
     return gravityForces
 
 def computeGroundCollisionForces(masses, K_g=5000):
     N = masses.size(0)
-    groundCollisionForces = torch.zeros((N, 3)).cuda()
+    groundCollisionForces = torch.zeros((N, 3)).to(device)
     groundCollisionForces[masses[:, 3, 2] < 0, 2] = -masses[masses[:, 3, 2] < 0, 3, 2] * K_g
     return groundCollisionForces
 
@@ -169,7 +170,7 @@ def assignMaterials(masses, springs, popCenterLocs, popCenterMats):
 
 def computeFrictionForces(masses, netForces, groundCollisionForces, mu_s, mu_k):
     N = masses.size(0)
-    frictionForces = torch.zeros((N, 3)).cuda()
+    frictionForces = torch.zeros((N, 3)).to(device)
 
     # Indices where mass is at or below the ground
     ground_indices = (masses[:, 3, 2] <= 0)
