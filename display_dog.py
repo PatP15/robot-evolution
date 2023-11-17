@@ -50,15 +50,17 @@ class MassSpringSystem:
 
         # Compute forces
         netForces = compute_net_spring_forces(self.masses, self.springs)  # Spring forces
-        netForces += computeGravityForces(self.masses)  # Gravity forces
+        gravityForces = computeGravityForces(self.masses)  # Gravity forces
+        netForces = netForces+ gravityForces
         groundCollisionForces = computeGroundCollisionForces(self.masses)
-        netForces += groundCollisionForces  # Ground collision forces
+        netForces = netForces + groundCollisionForces  # Ground collision forces
         # Compute friction forces and apply only to the masses at or below ground level
-        frictionForces = computeFrictionForces(self.masses, netForces, groundCollisionForces, mu_s, mu_k)
+        # frictionForces = computeFrictionForces(self.masses, netForces, groundCollisionForces, mu_s, mu_k)
+        frictionForces = newComputeFrictionForces(self.masses, gravityForces, mu_k)
         ground_indices = (self.masses[:, 3, 2] <= 0)
 
         # Update net forces with friction forces for ground-contacting masses
-        netForces[ground_indices, :2] = frictionForces[ground_indices, :2]
+        netForces[ground_indices, :2] = netForces[ground_indices, :2] + frictionForces[ground_indices, :2]
 
         # Integration step
         # Calculate acceleration

@@ -169,6 +169,16 @@ def assignMaterials(masses, springs, popCenterLocs, popCenterMats):
     popSpringProperties = popSpringProperties.reshape(-1)
     return popSpringProperties
 
+def newComputeFrictionForces(masses, gravityForces, mu):
+    normalForces = torch.norm(gravityForces, dim=1)
+    print("Normal Forces Shape: ", normalForces.size())
+    velocities = masses[:, 2, :] # (n x 3)
+    # Normalize the velocity vectors and multiply by the friction coefficient and normal force
+    normalizedVelocities = velocities / (velocities.norm(dim=1, keepdim=True) + 1e-8)
+    print("Normalized Velocities Shape: ", normalizedVelocities.size())
+    frictionalForces = -normalizedVelocities * mu * normalForces.unsqueeze(-1)
+    return frictionalForces
+
 def computeFrictionForces(masses, netForces, groundCollisionForces, mu_s, mu_k):
     N = masses.size(0)
     frictionForces = torch.zeros((N, 3)).to(device)
