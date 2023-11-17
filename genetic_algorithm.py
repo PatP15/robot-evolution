@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from display_dog import simulate
-
+import csv 
 class GeneticAlgorithm():
 
     def __init__(self, populationSize, numCenters):
@@ -44,6 +44,7 @@ class GeneticAlgorithm():
         self.centerMats = self.centerMats[selectedIndices]
         
         sortedIndices = torch.argsort(-1 * distances) # -1 is to sort from largest to smallest
+        distances = distances[sortedIndices]
         self.centerLocs = self.centerLocs[sortedIndices]
         self.centerMats = self.centerMats[sortedIndices]
 
@@ -105,9 +106,9 @@ class GeneticAlgorithm():
         # print("After recombine: self center locs ", self.centerLocs.size(), self.centerMats.size())
 
     def run(self, iterations=100, repeat=1):
-        # with open(outPath + "gold_ga2_function.csv", 'w', newline='') as outFile:
-        #     writer = csv.writer(outFile)
-        #     writer.writerow(["Iteration", "RMS", "Repeat"])
+        with open("evolve_robot.csv", 'w', newline='') as outFile:
+            writer = csv.writer(outFile)
+            writer.writerow(["Iteration", "Distance", "Repeat"])
 
         for j in range(repeat):
             maxDistance = 0.0
@@ -125,9 +126,9 @@ class GeneticAlgorithm():
                   maxDistance = tmpDistance
                   bestBot = (self.centerLocs[0], self.centerMats[0])
 
-                # with open(outPath + "gold_ga2_function.csv", 'a', newline='') as outFile:
-                #     writer = csv.writer(outFile)
-                #     writer.writerow([i*self.populationSize, minError**(0.5), j])
+                with open("evolve_run.csv", 'a', newline='') as outFile:
+                    writer = csv.writer(outFile)
+                    writer.writerow([i*self.populationSize, i, j])
 
             tmpDistance = self.select()
             if tmpDistance > maxDistance:
@@ -136,6 +137,9 @@ class GeneticAlgorithm():
             print("Max Distance: ", maxDistance)
             # Reset population
             self.centerLocs, self.centerMats = self.randomSample()
+            with open("evolve_run.csv", 'a', newline='') as outFile:
+                writer = csv.writer(outFile)
+                writer.writerow([bestBot])
 
 def main():
     ga = GeneticAlgorithm(6, 4)
