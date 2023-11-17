@@ -379,12 +379,14 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
         if visualize:
             pygame.display.flip()
             pygame.time.wait(1)
-        distances = torch.norm(dog.masses[::36, 3, :][:, :2] - initial_positions[:, :2], dim=1)
-        print(distances)
+        
+       # if int(T*1000) % 1000 == 0:
+        #    distances = torch.norm(dog.masses[::36, 3, :][:, :2] - initial_positions[:, :2], dim=1)
+         #   print(distances)
 
     final_positions = dog.masses[::36, 3, :].clone()
     distances = torch.norm(final_positions[:, :2] - initial_positions[:, :2], dim=1)
-    print(distances)
+    #print(distances)
     return distances
 
 if __name__ == "__main__":
@@ -394,9 +396,9 @@ if __name__ == "__main__":
         bestBot = pickle.load(f)
 
     print(bestBot)
-    popCenterLocs = torch.tensor(bestBot[0]).unsqueeze(0)
+    popCenterLocs = torch.tensor(bestBot[0]).unsqueeze(0).to(device)
     
-    popCenterMats = torch.tensor(bestBot[1]).unsqueeze(0)
+    popCenterMats = torch.tensor(bestBot[1]).unsqueeze(0).to(device)
 
     print("Size: ", popCenterLocs.size(), popCenterMats.size()  )
     simulate(popCenterLocs, popCenterMats, visualize=False)

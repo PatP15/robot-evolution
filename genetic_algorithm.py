@@ -34,7 +34,7 @@ class GeneticAlgorithm():
 
     def select(self):
         distances = self.evaluate()
-
+        distances[distances > 90] = 0
         # Optionally normalize the tensor to make it a probability distribution
         # distances = distances / distances.sum()
 
@@ -120,8 +120,9 @@ class GeneticAlgorithm():
                 # print("Iteration: ", i)
                 # print("Population Size: ", self.centerLocs.size()[0])
                 # print("start run: ", self.centerLocs.device)
+                torch.cuda.synchronize()
                 tmpDistance = self.select() 
-
+                torch.cuda.synchronize()
                 print("Eval: ", i*self.populationSize, ": ", tmpDistance.item())
                 if tmpDistance > maxDistance:
                     maxDistance = tmpDistance
@@ -134,7 +135,7 @@ class GeneticAlgorithm():
                 
                 self.mutate()
                 self.recombine(mc=0.33)
-                # self.clone()
+                torch.cuda.synchronize()
 
             tmpDistance = self.select()
             if tmpDistance > maxDistance:
@@ -152,7 +153,7 @@ class GeneticAlgorithm():
             print("Best Bot: ", bestBot)
 
 def main():
-    ga = GeneticAlgorithm(5, 12)
+    ga = GeneticAlgorithm(100, 6)
     ga.run(iterations=50)
 
 if __name__ == "__main__":
