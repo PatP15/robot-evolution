@@ -36,7 +36,7 @@ class GeneticAlgorithm():
         # distances = distances / distances.sum()
 
         # Sampling with replacement
-        print("Children Pop: ", len(distances))
+        # print("Children Pop: ", len(distances))
         selectedIndices = torch.multinomial(distances, self.populationSize//2, replacement=False)
 
         distances = distances[selectedIndices]
@@ -50,7 +50,7 @@ class GeneticAlgorithm():
         return distances[0]
 
     def mutate(self, alpha=0.1):
-        print("begin mutate: ", self.centerLocs.device)
+        # print("begin mutate: ", self.centerLocs.device)
         maxPos = torch.ones_like(self.centerLocs)
         maxPos[..., 0] = maxPos[..., 0] * 5
         maxPos[..., 1] = maxPos[..., 1] * 4
@@ -59,7 +59,7 @@ class GeneticAlgorithm():
         zeroes = torch.zeros_like(self.centerLocs)
         torch.clip(mutated_locs, zeroes, maxPos, out=self.centerLocs)  
         self.centerMats = torch.round(torch.clip(self.centerMats + torch.randn_like(self.centerMats), min=1, max=4))
-        print("end mutate: ", self.centerLocs.device)
+        # print("end mutate: ", self.centerLocs.device)
 
     def clone(self):
         self.centerLocs[self.centerLocs.shape[0] // 2:, ...] = self.centerLocs[:self.centerLocs.shape[0] // 2, ...].clone()
@@ -113,8 +113,8 @@ class GeneticAlgorithm():
             maxDistance = 0.0
             for i in range(iterations):
                 print("Iteration: ", i)
-                print("Population Size: ", self.centerLocs.size()[0])
-                print("start run: ", self.centerLocs.device)
+                # print("Population Size: ", self.centerLocs.size()[0])
+                # print("start run: ", self.centerLocs.device)
                 tmpDistance = self.select()
                 self.mutate()
                 self.recombine(mc=0.33)
