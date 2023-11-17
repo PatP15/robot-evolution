@@ -360,7 +360,7 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
             # print(cube.edges)
         
         
-            draw_checkered_ground(30, 30)
+            draw_checkered_ground(100, 100)
 
         
         dog.updateSprings(w, T)
@@ -377,10 +377,12 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
         if visualize:
             pygame.display.flip()
             pygame.time.wait(1)
+        distances = torch.norm(dog.masses[::36, 3, :][:, :2] - initial_positions[:, :2], dim=1)
+        print(distances)
 
     final_positions = dog.masses[::36, 3, :].clone()
     distances = torch.norm(final_positions[:, :2] - initial_positions[:, :2], dim=1)
-    # print(distances.item())
+    print(distances)
     return distances
 
 if __name__ == "__main__":
@@ -388,6 +390,11 @@ if __name__ == "__main__":
 
     with open("best_robot.pkl", 'rb') as f:
         bestBot = pickle.load(f)
-    popCenterLocs = bestBot[0]
-    popCenterMats = bestBot[1]
-    simulate(popCenterLocs, popCenterMats, visualize=True)
+
+    print(bestBot)
+    popCenterLocs = torch.tensor(bestBot[0]).unsqueeze(0)
+    
+    popCenterMats = torch.tensor(bestBot[1]).unsqueeze(0)
+
+    print("Size: ", popCenterLocs.size(), popCenterMats.size()  )
+    simulate(popCenterLocs, popCenterMats, visualize=False)
