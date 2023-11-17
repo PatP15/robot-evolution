@@ -138,7 +138,7 @@ class GeneticAlgorithm():
                 bestBot = (self.centerLocs[0], self.centerMats[0])
                 with open("evolve_robot.csv", 'a', newline='') as outFile:
                     writer = csv.writer(outFile)
-                    writer.writerow([i*self.populationSize, maxDistance.item(), j])
+                    writer.writerow([(i+1)*self.populationSize, maxDistance.item(), j])
 
             with open("best_robot.pkl", 'wb') as f:
                 pickle.dump(bestBot, f)
@@ -148,8 +148,8 @@ class GeneticAlgorithm():
             print("Best Bot: ", bestBot)
 
 def main():
-    ga = GeneticAlgorithm(6, 4)
-    ga.run(iterations=1)
+    ga = GeneticAlgorithm(100, 6)
+    ga.run(iterations=25)
 
 if __name__ == "__main__":
     main()
