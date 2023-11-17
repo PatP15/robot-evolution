@@ -378,9 +378,9 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
             pygame.display.flip()
             pygame.time.wait(1)
         
-        if int(T*1000) % 1000 == 0:
-            distances = torch.norm(dog.masses[::36, 3, :][:, :2] - initial_positions[:, :2], dim=1)
-            print(distances)
+       # if int(T*1000) % 1000 == 0:
+        #    distances = torch.norm(dog.masses[::36, 3, :][:, :2] - initial_positions[:, :2], dim=1)
+         #   print(distances)
 
     final_positions = dog.masses[::36, 3, :].clone()
     distances = torch.norm(final_positions[:, :2] - initial_positions[:, :2], dim=1)

@@ -34,7 +34,7 @@ class GeneticAlgorithm():
 
     def select(self):
         distances = self.evaluate()
-
+        distances[distances > 90] = 0
         # Optionally normalize the tensor to make it a probability distribution
         # distances = distances / distances.sum()
 
@@ -153,7 +153,7 @@ class GeneticAlgorithm():
             print("Best Bot: ", bestBot)
 
 def main():
-    ga = GeneticAlgorithm(1000, 12)
+    ga = GeneticAlgorithm(100, 6)
     ga.run(iterations=50)
 
 if __name__ == "__main__":
