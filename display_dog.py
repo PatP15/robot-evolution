@@ -378,7 +378,7 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
 
     final_positions = dog.masses[::36, 3, :].clone()
     distances = torch.norm(final_positions[:, :2] - initial_positions[:, :2], dim=1)
-    print(distances)
+    # print(distances.item())
     return distances
 
 if __name__ == "__main__":

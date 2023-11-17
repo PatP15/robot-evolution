@@ -115,7 +115,7 @@ class GeneticAlgorithm():
             maxDistance = 0.0
             bestBot = None
             for i in range(iterations):
-                print("Iteration: ", i)
+                # print("Iteration: ", i)
                 # print("Population Size: ", self.centerLocs.size()[0])
                 # print("start run: ", self.centerLocs.device)
                 tmpDistance = self.select()
@@ -123,14 +123,14 @@ class GeneticAlgorithm():
                 self.recombine(mc=0.33)
                 # self.clone() 
 
-                print(i*self.populationSize, ": ", tmpDistance)
+                print("Eval: ", i*self.populationSize, ": ", tmpDistance.item())
                 if tmpDistance > maxDistance:
                     maxDistance = tmpDistance
                     bestBot = (self.centerLocs[0], self.centerMats[0])
 
                     with open("evolve_robot.csv", 'a', newline='') as outFile:
                         writer = csv.writer(outFile)
-                        writer.writerow([i*self.populationSize, maxDistance, j])
+                        writer.writerow([i*self.populationSize, maxDistance.item(), j])
 
             tmpDistance = self.select()
             if tmpDistance > maxDistance:
@@ -138,7 +138,7 @@ class GeneticAlgorithm():
                 bestBot = (self.centerLocs[0], self.centerMats[0])
                 with open("evolve_robot.csv", 'a', newline='') as outFile:
                     writer = csv.writer(outFile)
-                    writer.writerow([i*self.populationSize, maxDistance, j])
+                    writer.writerow([i*self.populationSize, maxDistance.item(), j])
 
             with open("best_robot.pkl", 'wb') as f:
                 pickle.dump(bestBot, f)
@@ -149,7 +149,7 @@ class GeneticAlgorithm():
 
 def main():
     ga = GeneticAlgorithm(6, 4)
-    ga.run(iterations=10)
+    ga.run(iterations=1)
 
 if __name__ == "__main__":
     main()
