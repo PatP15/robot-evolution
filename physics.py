@@ -1,7 +1,8 @@
 import numpy as np
 import torch 
 from itertools import combinations
-from genetic_algorithm import device
+# from genetic_algorithm import device
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 """
     masses: (n x 4 x 3)
