@@ -51,18 +51,16 @@ class MassSpringSystem:
 
         # Compute forces
         netForces = compute_net_spring_forces(self.masses, self.springs)  # Spring forces
-        gravityForces = computeGravityForces(self.masses)  # Gravity forces
-        netForces = netForces+ gravityForces
+        netForces += computeGravityForces(self.masses)  # Gravity forces
         groundCollisionForces = computeGroundCollisionForces(self.masses)
-        netForces = netForces + groundCollisionForces  # Ground collision forces
+        netForces += groundCollisionForces  # Ground collision forces
         # Compute friction forces and apply only to the masses at or below ground level
-        # frictionForces = computeFrictionForces(self.masses, netForces, groundCollisionForces, mu_s, mu_k)
-        frictionForces = newComputeFrictionForces(self.masses, gravityForces, mu_k)
+        frictionForces = computeFrictionForces(self.masses, netForces, groundCollisionForces, mu_s, mu_k)
         ground_indices = (self.masses[:, 3, 2] <= 0)
 
         # Update net forces with friction forces for ground-contacting masses
-        netForces[ground_indices, :2] = netForces[ground_indices, :2] + frictionForces[ground_indices, :2]
-
+        netForces[ground_indices, :2] = frictionForces[ground_indices, :2]
+        # print(netForces)
         # Integration step
         # Calculate acceleration
         self.masses[:, 1] = netForces / self.masses[:, 0, 0].unsqueeze(-1)
@@ -74,7 +72,7 @@ class MassSpringSystem:
 
         # Apply dampening
         self.masses[:, 2] = self.masses[:, 2] * 0.999
-
+        # print(self.masses[:, 2])
     # Update spring properties in-place according to material
 
     def updateSprings(self, w, T):
@@ -387,9 +385,9 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
         movingAverage.append(end - start)
         print(sum(movingAverage) / len(movingAverage))
         
-       # if int(T*1000) % 1000 == 0:
-        #    distances = torch.norm(dog.masses[::36, 3, :][:, :2] - initial_positions[:, :2], dim=1)
-         #   print(distances)
+        if int(T*1000) % 1000 == 0:
+           distances = torch.norm(dog.masses[::36, 3, :][:, :2] - initial_positions[:, :2], dim=1)
+           print(distances)
 
     final_positions = dog.masses[::36, 3, :].clone()
     distances = torch.norm(final_positions[:, :2] - initial_positions[:, :2], dim=1)
@@ -408,4 +406,4 @@ if __name__ == "__main__":
     popCenterMats = torch.tensor(bestBot[1]).unsqueeze(0).to(device)
 
     print("Size: ", popCenterLocs.size(), popCenterMats.size()  )
-    simulate(popCenterLocs, popCenterMats, visualize=False)
+    simulate(popCenterLocs, popCenterMats, visualize=True)

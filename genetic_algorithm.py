@@ -34,7 +34,7 @@ class GeneticAlgorithm():
 
     def select(self):
         distances = self.evaluate()
-        distances[distances > 90] = 0
+        distances[distances > 100] = 0
         # Optionally normalize the tensor to make it a probability distribution
         # distances = distances / distances.sum()
 
@@ -129,9 +129,9 @@ class GeneticAlgorithm():
                     bestBot = (np.array(self.centerLocs[0].cpu()), np.array(self.centerMats[0].cpu()))
                     with open("best_robot.pkl", 'wb') as f:
                         pickle.dump(bestBot, f) 
-                    with open("evolve_robot.csv", 'a', newline='') as outFile:
-                        writer = csv.writer(outFile)
-                        writer.writerow([i*self.populationSize, maxDistance.item(), j])
+                with open("evolve_robot.csv", 'a', newline='') as outFile:
+                    writer = csv.writer(outFile)
+                    writer.writerow([i*self.populationSize, maxDistance.item(), j])
                 
                 self.mutate()
                 self.recombine(mc=0.33)
@@ -153,7 +153,7 @@ class GeneticAlgorithm():
             print("Best Bot: ", bestBot)
 
 def main():
-    ga = GeneticAlgorithm(100, 6)
+    ga = GeneticAlgorithm(10, 6)
     ga.run(iterations=50)
 
 if __name__ == "__main__":
