@@ -8,8 +8,9 @@ from itertools import combinations
 from physics import *
 import pickle
 import math
-from genetic_algorithm import device
+
 # Camera variables
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
 angle_x = 0
 angle_y = 0
 mouse_dragging = False

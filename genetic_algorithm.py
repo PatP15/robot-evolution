@@ -128,7 +128,7 @@ class GeneticAlgorithm():
                 print("Eval: ", i*self.populationSize, ": ", tmpDistance.item())
                 if tmpDistance > maxDistance:
                     maxDistance = tmpDistance
-                    bestBot = (self.centerLocs[0], self.centerMats[0])
+                    bestBot = (self.centerLocs[0].detach(), self.centerMats[0].detach())
 
                     with open("evolve_robot.csv", 'a', newline='') as outFile:
                         writer = csv.writer(outFile)
@@ -137,7 +137,7 @@ class GeneticAlgorithm():
             tmpDistance = self.select()
             if tmpDistance > maxDistance:
                 maxDistance = tmpDistance
-                bestBot = (self.centerLocs[0], self.centerMats[0])
+                bestBot = (self.centerLocs[0].detach(), self.centerMats[0].detach())
                 with open("evolve_robot.csv", 'a', newline='') as outFile:
                     writer = csv.writer(outFile)
                     writer.writerow([(i+1)*self.populationSize, maxDistance.item(), j])
