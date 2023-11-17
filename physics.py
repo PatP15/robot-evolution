@@ -177,6 +177,7 @@ def newComputeFrictionForces(masses, gravityForces, mu):
     normalizedVelocities = velocities / (velocities.norm(dim=1, keepdim=True) + 1e-8)
     print("Normalized Velocities Shape: ", normalizedVelocities.size())
     frictionalForces = -normalizedVelocities * mu * normalForces.unsqueeze(-1)
+    print("Frictional Forces Shape: ", frictionalForces.size())
     return frictionalForces
 
 def computeFrictionForces(masses, netForces, groundCollisionForces, mu_s, mu_k):
