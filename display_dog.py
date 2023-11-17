@@ -288,7 +288,7 @@ def makeOneDog():
 
     return masses, springs
 
-def simulate(popCenterLocs, popCenterMats):
+def simulate(popCenterLocs, popCenterMats, visualize=False):
     '''
         materials
         1: k=1000 b=c=0
@@ -329,52 +329,53 @@ def simulate(popCenterLocs, popCenterMats):
     omega = 20
 
     # og = springs[:, 3].clone()
-    pygame.init()
-    display = (800, 600)
-    pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
-    gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
-    glTranslatef(0.0, 0.0, -12) # Adjusted to have a top-down view
+    if visualize:
+        pygame.init()
+        display = (800, 600)
+        pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
+        gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
+        glTranslatef(0.0, 0.0, -12) # Adjusted to have a top-down view
     # Initialization of Masses and Springs
 
     # print(len(objs))
     while T < 0.1:
         # print("T: ", T)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                return
-            mouse_button_callback(event)
-            if mouse_dragging:
-                mouse_motion_callback(event)
+        if visualize:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    return
+                mouse_button_callback(event)
+                if mouse_dragging:
+                    mouse_motion_callback(event)
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glLoadIdentity()
-        gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
-        glTranslatef(camera_translation[0], camera_translation[1], -camera_distance)
-        glRotatef(angle_x, 1, 0, 0)
-        glRotatef(angle_y, 0, 0, 1)
-        # print(cube.edges)
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+            glLoadIdentity()
+            gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
+            glTranslatef(camera_translation[0], camera_translation[1], -camera_distance)
+            glRotatef(angle_x, 1, 0, 0)
+            glRotatef(angle_y, 0, 0, 1)
+            # print(cube.edges)
         
         
-        draw_checkered_ground(30, 30)
+            draw_checkered_ground(30, 30)
 
         
         dog.updateSprings(w, T)
         dog.simulate(dt)
-        draw_shadow(dog)
-
-
-        draw_cube(dog)
-        # draw_cube_faces(cube)
-        draw_spheres_at_vertices(dog)
-        
-        
+        if visualize:
+            draw_shadow(dog)
+            draw_cube(dog)
+            # draw_cube_faces(cube)
+            draw_spheres_at_vertices(dog)
         
 
         T += dt
-        
-        pygame.display.flip()
-        pygame.time.wait(1)
+
+        if visualize:
+            pygame.display.flip()
+            pygame.time.wait(1)
+
     final_positions = dog.masses[::36, 3, :].clone()
     distances = torch.norm(final_positions - initial_positions, dim=1)
     # print(distances)
