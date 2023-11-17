@@ -85,7 +85,7 @@ def compute_spring_forces(masses, springs):
 
 def aggregate_spring_forces(springs, forces, masses):
     N = masses.size(0)
-    force_accumulator = torch.zeros((N, 3))#.cuda()
+    force_accumulator = torch.zeros((N, 3)).cuda()
 
     idx1 = springs[:, 0].long()
     idx2 = springs[:, 1].long()
@@ -104,18 +104,20 @@ def compute_net_spring_forces(masses, springs):
 
 def computeGravityForces(masses):
     N = masses.size(0)
-    gravityForces = torch.zeros((N, 3))#.cuda()
+    gravityForces = torch.zeros((N, 3)).cuda()
     gravityForces[:, 2] = -9.81 * masses[:, 0, 0]
     return gravityForces
 
 def computeGroundCollisionForces(masses, K_g=5000):
     N = masses.size(0)
-    groundCollisionForces = torch.zeros((N, 3))#.cuda()
+    groundCollisionForces = torch.zeros((N, 3)).cuda()
     groundCollisionForces[masses[:, 3, 2] < 0, 2] = -masses[masses[:, 3, 2] < 0, 3, 2] * K_g
     return groundCollisionForces
 
 def batch_assign_materials_to_masses(batch_masses, batch_center_positions, batch_material_properties):
     # Assuming the first dimension is the batch dimension (num_robots)
+    print(batch_masses.device)
+    print(batch_center_positions.device)
     batch_distances = torch.cdist(batch_masses, batch_center_positions)  # Shape (num_robots, num_masses, num_centers)
 
     # Find the index of the closest center for each mass in each robot
@@ -167,7 +169,7 @@ def assignMaterials(masses, springs, popCenterLocs, popCenterMats):
 
 def computeFrictionForces(masses, netForces, groundCollisionForces, mu_s, mu_k):
     N = masses.size(0)
-    frictionForces = torch.zeros((N, 3))
+    frictionForces = torch.zeros((N, 3)).cuda()
 
     # Indices where mass is at or below the ground
     ground_indices = (masses[:, 3, 2] <= 0)
