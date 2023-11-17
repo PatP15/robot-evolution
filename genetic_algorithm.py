@@ -129,9 +129,9 @@ class GeneticAlgorithm():
                     bestBot = (np.array(self.centerLocs[0].cpu()), np.array(self.centerMats[0].cpu()))
                     with open("best_robot.pkl", 'wb') as f:
                         pickle.dump(bestBot, f) 
-                    with open("evolve_robot.csv", 'a', newline='') as outFile:
-                        writer = csv.writer(outFile)
-                        writer.writerow([i*self.populationSize, maxDistance.item(), j])
+                with open("evolve_robot.csv", 'a', newline='') as outFile:
+                    writer = csv.writer(outFile)
+                    writer.writerow([i*self.populationSize, maxDistance.item(), j])
                 
                 self.mutate()
                 self.recombine(mc=0.33)
