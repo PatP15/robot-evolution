@@ -8,6 +8,7 @@ from itertools import combinations
 from physics import *
 import pickle
 import math
+import time
 
 # Camera variables
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -340,8 +341,10 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
     # Initialization of Masses and Springs
 
     # print(len(objs))
+    movingAverage = []
     while T < 5:
         # print("T: ", T)
+        start = time.time()
         if visualize:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -377,6 +380,10 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
         if visualize:
             pygame.display.flip()
             pygame.time.wait(1)
+        
+        end = time.time()
+        movingAverage.append(end - start)
+        print(sum(movingAverage) / len(movingAverage))
         
         if int(T*1000) % 1000 == 0:
            distances = torch.norm(dog.masses[::36, 3, :][:, :2] - initial_positions[:, :2], dim=1)
