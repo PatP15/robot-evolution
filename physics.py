@@ -169,16 +169,17 @@ def assignMaterials(masses, springs, popCenterLocs, popCenterMats):
     popSpringProperties = popSpringProperties.reshape(-1)
     return popSpringProperties
 
-def newComputeFrictionForces(masses, netForces, gravityForces, mu_s, mu_k):
+def newComputeFrictionForces(masses, netForces, mu_s, mu_k):
     horizontalForces = torch.norm(netForces[:, :2], dim=1)
-    normalForces = torch.norm(gravityForces, dim=1)
+    verticalForces = netForces[:, 2]
+    normalForces = torch.norm(verticalForces, dim=1)
     velocities = masses[:, 2, :] # (n x 3)
     moving = torch.norm(velocities, dim=1) > 1e-4
     maxStaticFriction = mu_s * normalForces
     # Normalize the velocity vectors and multiply by the friction coefficient and normal force
     normalizedVelocities = velocities / (velocities.norm(dim=1, keepdim=True) + 1e-8)
-    frictionalForces = torch.where(horizontalForces < maxStaticFriction, -normalizedVelocities * mu_k * normalForces.unsqueeze(-1), -netForces) # * moving.float().unsqueeze(-1)
-    return frictionalForces
+    frictionalForces = -normalizedVelocities * mu_k * normalForces.unsqueeze(-1) * moving.float().unsqueeze(-1)
+    return horizontalForces < maxStaticFriction, frictionalForces
 
 def computeFrictionForces(masses, netForces, groundCollisionForces, mu_s, mu_k):
     N = masses.size(0)
