@@ -51,10 +51,12 @@ class MassSpringSystem:
 
         # Compute forces
         netForces = compute_net_spring_forces(self.masses, self.springs)  # Spring forces
-        netForces += computeGravityForces(self.masses)  # Gravity forces
+        gravityForces = computeGravityForces(self.masses)
+        netForces += gravityForces  # Gravity forces
         groundCollisionForces = computeGroundCollisionForces(self.masses)
         netForces += groundCollisionForces  # Ground collision forces
         # Compute friction forces and apply only to the masses at or below ground level
+        # frictionForces = newComputeFrictionForces(self.masses, netForces, gravityForces, mu_s, mu_k):
         frictionForces = computeFrictionForces(self.masses, netForces, groundCollisionForces, mu_s, mu_k)
         ground_indices = (self.masses[:, 3, 2] <= 0)
 

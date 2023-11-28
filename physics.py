@@ -169,13 +169,15 @@ def assignMaterials(masses, springs, popCenterLocs, popCenterMats):
     popSpringProperties = popSpringProperties.reshape(-1)
     return popSpringProperties
 
-def newComputeFrictionForces(masses, gravityForces, mu):
+def newComputeFrictionForces(masses, netForces, gravityForces, mu_s, mu_k):
+    horizontalForces = torch.norm(netForces[:, :2], dim=1)
     normalForces = torch.norm(gravityForces, dim=1)
     velocities = masses[:, 2, :] # (n x 3)
     moving = torch.norm(velocities, dim=1) > 1e-4
+    maxStaticFriction = mu_s * normalForces
     # Normalize the velocity vectors and multiply by the friction coefficient and normal force
     normalizedVelocities = velocities / (velocities.norm(dim=1, keepdim=True) + 1e-8)
-    frictionalForces = -normalizedVelocities * mu * normalForces.unsqueeze(-1) * moving.float().unsqueeze(-1)
+    frictionalForces = torch.where(horizontalForces < maxStaticFriction, -normalizedVelocities * mu_k * normalForces.unsqueeze(-1), -netForces) # * moving.float().unsqueeze(-1)
     return frictionalForces
 
 def computeFrictionForces(masses, netForces, groundCollisionForces, mu_s, mu_k):
@@ -197,7 +199,7 @@ def computeFrictionForces(masses, netForces, groundCollisionForces, mu_s, mu_k):
         unit_vector_y = FH_y / (FH_magnitude + 1e-8)
 
         # Apply kinetic friction condition
-        kinetic_friction_indices = FH_magnitude >= (Fn * mu_s)  
+        kinetic_friction_indices = FH_magnitude >= (Fn * mu_s)
         # Update friction forces for masses on the ground
         frictionForces[ground_indices][kinetic_friction_indices, 0] = FH_x[kinetic_friction_indices] - Fn[kinetic_friction_indices] * mu_k * unit_vector_x[kinetic_friction_indices]
         frictionForces[ground_indices][kinetic_friction_indices, 1] = FH_y[kinetic_friction_indices] - Fn[kinetic_friction_indices] * mu_k * unit_vector_y[kinetic_friction_indices]
