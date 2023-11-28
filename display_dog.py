@@ -393,10 +393,18 @@ if __name__ == "__main__":
     with open("best_robot.pkl", 'rb') as f:
         bestBot = pickle.load(f)
 
+    with open("best_robot_rs.pkl", 'rb') as f:
+        rsBot = pickle.load(f)
+
     print(bestBot)
+    rsBot_loc = torch.tensor(rsBot[0]).unsqueeze(0).to(device)
+    rsBot_mat = torch.tensor(rsBot[1]).unsqueeze(0).to(device)
+
     popCenterLocs = torch.tensor(bestBot[0]).unsqueeze(0).to(device)
-    
+    popCenterLocs = torch.concat([popCenterLocs, rsBot_loc], axis=0)
+
     popCenterMats = torch.tensor(bestBot[1]).unsqueeze(0).to(device)
+    popCenterMats = torch.concat([popCenterMats, rsBot_mat], axis=0)
 
     print("Size: ", popCenterLocs.size(), popCenterMats.size()  )
     simulate(popCenterLocs, popCenterMats, visualize=True)
