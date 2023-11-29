@@ -1,3 +1,4 @@
+import itertools
 import pygame
 from pygame.locals import *
 from OpenGL.GL import *
@@ -246,6 +247,43 @@ def makeOneWorm():
 
     return masses, springs
 
+
+def makeBoxes():
+    massLocations = []
+    springs = []
+
+    # Define parameters for the worm
+    num_cubes = 3  # Number of cubes in each dimension
+    cube_size = 1  # Size of each cube
+
+    # Function to add cube masses
+    def addCubeMasses(x_base, y_base, z_base):
+        cube_masses = []
+        for x in range(2):
+            for y in range(2):
+                for z in range(2):
+                    mass = (x_base + x * cube_size, y_base + y * cube_size, z_base + z * cube_size)
+                    if mass not in massLocations:
+                        massLocations.append(mass)
+                    cube_masses.append(massLocations.index(mass))
+        return cube_masses
+
+    # Generate masses and springs for each cube
+    for x in range(num_cubes):
+        for y in range(num_cubes):
+            for z in range(num_cubes):
+                cube_mass_indices = addCubeMasses(x * cube_size, y * cube_size, z * cube_size)
+                cube_springs = generateSprings(massLocations, cube_mass_indices)
+                springs.extend(cube_springs)
+
+    # Convert to tensors
+    massValues = [1] * len(massLocations)  # Assuming each mass has a value of 1
+    masses = torch.tensor(generateMasses(massLocations, massValues), dtype=torch.float)
+    springs = torch.tensor(springs, dtype=torch.float)
+
+    return masses, springs
+
+
 def make_multilayer_sphere(radius, num_masses_per_layer, num_layers=4):
     massLocations = []
     springs = []
@@ -305,6 +343,42 @@ def make_multilayer_sphere(radius, num_masses_per_layer, num_layers=4):
 
     return masses, springs
 
+def makeOnePyramid():
+    massLocations = []
+    springs = []
+
+    # Define parameters for the pyramid
+    pyramid_height = 4  # Number of layers in the pyramid
+    cube_size = 1       # Size of each cube
+
+    # Function to add cube masses
+    def addCubeMasses(x_base, y_base, z_base):
+        cube_masses = []
+        for x in range(2):
+            for y in range(2):
+                for z in range(2):
+                    mass = (x_base + x * cube_size, y_base + y * cube_size, z_base + z * cube_size)
+                    if mass not in massLocations:
+                        massLocations.append(mass)
+                    cube_masses.append(massLocations.index(mass))
+        return cube_masses
+
+    # Generate masses and springs for each cube in the pyramid
+    for layer in range(pyramid_height):
+        for x in range(pyramid_height - layer):
+            for y in range(pyramid_height - layer):
+                z = layer  # Height of the layer in the pyramid
+                cube_mass_indices = addCubeMasses(x * cube_size, y * cube_size, z * cube_size)
+                cube_springs = generateSprings(massLocations, cube_mass_indices)
+                springs.extend(cube_springs)
+
+    # Convert to tensors
+    massValues = [1] * len(massLocations)  # Assuming each mass has a value of 1
+    masses = torch.tensor(generateMasses(massLocations, massValues), dtype=torch.float)
+    springs = torch.tensor(springs, dtype=torch.float)
+
+    return masses, springs
+
 
 def simulate(popCenterLocs, popCenterMats, visualize=False):
     '''
@@ -320,7 +394,13 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
     # Example usage
     radius = 2  # Radius of the sphere
     num_masses_per_level = 8  # Number of masses per level
-    masses, springs = make_multilayer_sphere(radius, num_masses_per_level)
+    base_size = 1
+    height = 1
+    num_levels = 3
+    # masses, springs = create_fractal_tetrahedrons(base_size, height, num_levels)
+    # masses, springs = make_multilayer_sphere(radius, num_masses_per_level)
+    # masses, springs = makeBoxes()
+    masses, springs = makeOnePyramid()
     # masses, springs = makeOneWorm()
     masses, springs = concatenate_masses_and_springs(masses, springs, populationSize)
     masses = masses.to(device)
