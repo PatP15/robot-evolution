@@ -89,11 +89,13 @@ class MassSpringSystem:
         self.springs[self.materials == 2, 2] = 2000
         self.springs[self.materials == 3, 2] = 5000
         self.springs[self.materials == 4, 2] = 5000
+        self.springs[self.materials == 5, 2] = 0
         # Update resting lengths
         self.springs[self.materials == 1, 3] = self.og[self.materials == 1]
         self.springs[self.materials == 2, 3] = self.og[self.materials == 2]
         self.springs[self.materials == 3, 3] = self.og[self.materials == 3] * (1 + 0.25 * np.sin(w*T))
         self.springs[self.materials == 4, 3] = self.og[self.materials == 4] * (1 + 0.25 * np.sin(w*T+torch.pi))
+        self.springs[self.materials == 5, 3] = self.og[self.materials == 5]
 
 def concatenate_masses_and_springs(masses, springs, n_copies):
     # Check if n_copies is valid
@@ -309,6 +311,7 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
         2: k=20000 b=c=0
         3: k=5000 b=0.25 c=0
         4: k=5000 b=0.25 c=pi
+        5: "air" -> k=0
         w=2*pi
     '''
     # print("Pop device: ", popCenterLocs.device)
