@@ -1,3 +1,4 @@
+import itertools
 import pygame
 from pygame.locals import *
 from OpenGL.GL import *
@@ -246,54 +247,144 @@ def makeOneWorm():
 
     return masses, springs
 
-def make_multilayer_sphere(radius, num_masses_per_layer, num_layers=1):
+
+def makeBoxes():
     massLocations = []
-    # angle_step = 2 * np.pi / num_masses_per_layer
-    layer_radii = np.linspace(0.5 * radius, radius, num_layers)  # Radii of each spherical layer
-    print("layerradii ", layer_radii)
+    springs = []
 
-    # Calculate positions for each spherical layer
-    for layer, layer_radius in enumerate(layer_radii):
-        # Add top and bottom masses (poles)
-        massLocations.append((0, 0, layer_radius))  # Top (North Pole)
-        massLocations.append((0, 0, -layer_radius)) # Bottom (South Pole)
+    # Define parameters for the worm
+    num_cubes = 5  # Number of cubes in each dimension
+    cube_size = 1  # Size of each cube
 
-        # Evenly distribute other masses
-        for lat in range(1, num_masses_per_layer - 1):  # Avoid poles
-            phi = lat * (np.pi / num_masses_per_layer)  # Angle from z-axis
+    # Function to add cube masses
+    def addCubeMasses(x_base, y_base, z_base):
+        cube_masses = []
+        for x in range(2):
+            for y in range(2):
+                for z in range(2):
+                    mass = (x_base + x * cube_size, y_base + y * cube_size, z_base + z * cube_size)
+                    if mass not in massLocations:
+                        massLocations.append(mass)
+                    cube_masses.append(massLocations.index(mass))
+        return cube_masses
+
+    # Generate masses and springs for each cube
+    for x in range(num_cubes):
+        for y in range(num_cubes):
+            for z in range(num_cubes):
+                cube_mass_indices = addCubeMasses(x * cube_size, y * cube_size, z * cube_size)
+                cube_springs = generateSprings(massLocations, cube_mass_indices)
+                springs.extend(cube_springs)
+
+    # Convert to tensors
+    massValues = [1] * len(massLocations)  # Assuming each mass has a value of 1
+    masses = torch.tensor(generateMasses(massLocations, massValues), dtype=torch.float)
+
+    print("Springs: ", springs)
+    print("Springs len: ", len(springs))
+
+    # Remove any duplicate springs (i.e. springs that connect the same two masses)
+    springs = np.unique(springs, axis=0)
+    print("Springs len: ", len(springs))
+    springs = torch.tensor(springs, dtype=torch.float)
+
+    return masses, springs
+
+
+def make_multilayer_sphere(radius, num_masses_per_layer, num_layers=5):
+    massLocations = []
+    springs = []
+    spring_constant = 10000
+
+    # Generate mass locations for each layer
+    for layer in range(num_layers):
+        layer_radius = radius * (layer + 1) / num_layers
+
+        # Even distribution excluding poles
+        for lat in range(1, num_masses_per_layer - 1):  # Exclude the poles
+            phi = lat * (np.pi / (num_masses_per_layer - 1))  # Angle from z-axis
             for lon in range(num_masses_per_layer):
-                theta = lon * (2 * np.pi / num_masses_per_layer)  # Angle in xy-plane
+                theta = lon * (2 * np.pi / num_masses_per_layer)
                 x = layer_radius * np.sin(phi) * np.cos(theta)
                 y = layer_radius * np.sin(phi) * np.sin(theta)
                 z = layer_radius * np.cos(phi)
                 massLocations.append((x, y, z))
+
+    # Adjust mass locations for ground level
     massLocations = [(x, y, z + radius) for x, y, z in massLocations]
-    # Generate springs between adjacent masses and between layers
-    springs = []
-    spring_constant = 10000
 
-    # Connect adjacent masses in the same layer
+    # Connect masses within each layer and between layers
     for layer in range(num_layers):
-        base_index = layer * num_masses_per_layer * num_masses_per_layer
-        for lat in range(num_masses_per_layer):
-            for lon in range(num_masses_per_layer-1):
-                current_index = base_index + lat * num_masses_per_layer + lon
-                # Connect with next mass in the same latitude
-                next_lon_index = base_index + lat * num_masses_per_layer + (lon + 1) % num_masses_per_layer
-                restinglength = np.linalg.norm(np.array(massLocations[current_index]) - np.array(massLocations[next_lon_index]))
-                springs.append((current_index, next_lon_index, spring_constant, restinglength))  # Resting length to be calculated
-                # Connect with next mass in the same longitude
-                restinglength = np.linalg.norm(np.array(massLocations[current_index]) - np.array(massLocations[(current_index + num_masses_per_layer) % (num_masses_per_layer * num_masses_per_layer)]))
-                next_lat_index = base_index + ((lat + 1) % num_masses_per_layer) * num_masses_per_layer + lon
-                springs.append((current_index, next_lat_index, spring_constant, restinglength))  # Resting length to be calculated
+        layer_base_index = layer * (num_masses_per_layer - 2) * num_masses_per_layer
 
-    # Connect masses between layers
-    # [This part of the code would need to be carefully written to ensure proper connections between layers]
+        for lat in range(num_masses_per_layer - 2):
+            for lon in range(num_masses_per_layer):
+                current_index = layer_base_index + lat * num_masses_per_layer + lon
+
+                # Connect with next mass in the same latitude (wrap-around)
+                next_lon_index = layer_base_index + lat * num_masses_per_layer + (lon + 1) % num_masses_per_layer
+                resting_length_lon = np.linalg.norm(np.array(massLocations[current_index]) - np.array(massLocations[next_lon_index]))
+                springs.append((current_index, next_lon_index, spring_constant, resting_length_lon))
+
+                # Connect with next mass in the same longitude
+                if lat < num_masses_per_layer - 3:
+                    next_lat_index = layer_base_index + (lat + 1) * num_masses_per_layer + lon
+                    resting_length_lat = np.linalg.norm(np.array(massLocations[current_index]) - np.array(massLocations[next_lat_index]))
+                    springs.append((current_index, next_lat_index, spring_constant, resting_length_lat))
+
+        # Connect to corresponding masses in the next layer
+        if layer < num_layers - 1:
+            next_layer_base_index = (layer + 1) * (num_masses_per_layer - 2) * num_masses_per_layer
+            for i in range((num_masses_per_layer - 2) * num_masses_per_layer):
+                current_mass_index = layer_base_index + i
+                next_layer_mass_index = next_layer_base_index + i
+                resting_length_inter_layer = np.linalg.norm(np.array(massLocations[current_mass_index]) - np.array(massLocations[next_layer_mass_index]))
+                springs.append((current_mass_index, next_layer_mass_index, spring_constant, resting_length_inter_layer))
+
 
     massValues = [1] * len(massLocations)
     masses = generateMasses(massLocations, massValues)
     print("Masses len: ", len(masses))
+    print("Springs len: ", len(springs))
+    print("Springs: ", springs)
     masses = torch.tensor(masses, dtype=torch.float)
+    springs = torch.tensor(springs, dtype=torch.float)
+
+    return masses, springs
+
+def makeOnePyramid():
+    massLocations = []
+    springs = []
+
+    # Define parameters for the pyramid
+    pyramid_height = 4  # Number of layers in the pyramid
+    cube_size = 1       # Size of each cube
+
+    # Function to add cube masses
+    def addCubeMasses(x_base, y_base, z_base):
+        cube_masses = []
+        for x in range(2):
+            for y in range(2):
+                for z in range(2):
+                    mass = (x_base + x * cube_size, y_base + y * cube_size, z_base + z * cube_size)
+                    if mass not in massLocations:
+                        massLocations.append(mass)
+                    cube_masses.append(massLocations.index(mass))
+        return cube_masses
+
+    # Generate masses and springs for each cube in the pyramid
+    for layer in range(pyramid_height):
+        for x in range(pyramid_height - layer):
+            for y in range(pyramid_height - layer):
+                z = layer  # Height of the layer in the pyramid
+                cube_mass_indices = addCubeMasses(x * cube_size, y * cube_size, z * cube_size)
+                cube_springs = generateSprings(massLocations, cube_mass_indices)
+                springs.extend(cube_springs)
+
+    # Convert to tensors
+    massValues = [1] * len(massLocations)  # Assuming each mass has a value of 1
+    masses = torch.tensor(generateMasses(massLocations, massValues), dtype=torch.float)
+    springs = np.unique(springs, axis=0)
     springs = torch.tensor(springs, dtype=torch.float)
 
     return masses, springs
@@ -311,11 +402,18 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
     # print("Pop device: ", popCenterLocs.device)
     populationSize = popCenterLocs.size()[0]
     # Example usage
-    radius = 4  # Radius of the sphere
+    radius = 2  # Radius of the sphere
     num_masses_per_level = 8  # Number of masses per level
-    masses, springs = make_multilayer_sphere(radius, num_masses_per_level)
+    base_size = 1
+    height = 1
+    num_levels = 3
+    # masses, springs = create_fractal_tetrahedrons(base_size, height, num_levels)
+    # masses, springs = make_multilayer_sphere(radius, num_masses_per_level)
+    masses, springs = makeBoxes()
+    # masses, springs = makeOnePyramid()
     # masses, springs = makeOneWorm()
     masses, springs = concatenate_masses_and_springs(masses, springs, populationSize)
+    print
     masses = masses.to(device)
     springs = springs.to(device)
     # print("spring", len(springs))

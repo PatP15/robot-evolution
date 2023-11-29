@@ -46,7 +46,7 @@ class MassSpringSystem:
 
 
     def simulate(self, dt):
-        mu_s = 1  # Static friction coefficient
+        mu_s = 1000  # Static friction coefficient
         mu_k = 0.5 # Kinetic friction coefficient
 
         # Compute forces
@@ -62,7 +62,7 @@ class MassSpringSystem:
         # Update net forces with friction forces for ground-contacting masses
         # print(ground_indices.size(), "\n\n\n", staticFrictionIndices.size())
         kineticFrictionMassIndices = torch.logical_and(ground_indices, torch.logical_not(staticFrictionIndices))
-        netForces[kineticFrictionMassIndices, :2] = kinecticFrictionForces[kineticFrictionMassIndices, :2]
+        netForces[kineticFrictionMassIndices, :2] += kinecticFrictionForces[kineticFrictionMassIndices, :2]
         # print(netForces)
         # Integration step
         # Calculate acceleration
@@ -166,10 +166,15 @@ def draw_shadow(cube):
     glEnd()
 
 def draw_spheres_at_vertices(cube):
-    glColor3f(1, 0, 0)  # Color of the spheres
+      # Color of the spheres
     for i in range(len(cube.vertices)):
         glPushMatrix()
         glTranslatef(*(cube.vertices[i]))
+        #change color if z<0
+        if cube.vertices[i][2] < 0:
+            glColor3f(0, 1, 0)
+        else:
+            glColor3f(1, 0, 0)
         glutSolidSphere(cube.vertex_sizes[i], 20, 20)  # Draw a sphere of radius 0.1 with 20 slices and 20 stacks
         glPopMatrix()
 
@@ -392,11 +397,11 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
         
         end = time.time()
         movingAverage.append(end - start)
-        print(sum(movingAverage) / len(movingAverage))
+        # print(sum(movingAverage) / len(movingAverage))
         
         if int(T*1000) % 1000 == 0:
            distances = torch.norm(dog.masses[::36, 3, :][:, :2] - initial_positions[:, :2], dim=1)
-           print(distances)
+        #    print(distances)
 
     final_positions = dog.masses[::36, 3, :].clone()
     distances = torch.norm(final_positions[:, :2] - initial_positions[:, :2], dim=1)

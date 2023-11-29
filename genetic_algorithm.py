@@ -10,6 +10,7 @@ class GeneticAlgorithm():
     def __init__(self, populationSize, numCenters):
         self.populationSize = populationSize
         self.numCenters = numCenters
+        # self.ages = torch.zeros(size=(self.populationSize, 1), dtype=torch.float)
         self.centerLocs, self.centerMats = self.randomSample()
         
 
@@ -34,7 +35,7 @@ class GeneticAlgorithm():
 
     def select(self):
         distances = self.evaluate()
-        distances[distances > 100] = 0
+        # distances[distances > 100] = 0
         # Optionally normalize the tensor to make it a probability distribution
         # distances = distances / distances.sum()
 
