@@ -60,7 +60,9 @@ class MassSpringSystem:
         ground_indices = (self.masses[:, 3, 2] <= 0)
 
         # Update net forces with friction forces for ground-contacting masses
-        netForces[ground_indices and not staticFrictionIndices, :2] = kinecticFrictionForces[ground_indices, :2]
+        # print(ground_indices.size(), "\n\n\n", staticFrictionIndices.size())
+        kineticFrictionMassIndices = torch.logical_and(ground_indices, torch.logical_not(staticFrictionIndices))
+        netForces[kineticFrictionMassIndices, :2] = kinecticFrictionForces[kineticFrictionMassIndices, :2]
         # print(netForces)
         # Integration step
         # Calculate acceleration
@@ -68,7 +70,8 @@ class MassSpringSystem:
         # Calculate velocity
         self.masses[:, 2] += self.masses[:, 1] * dt
         # Zero the velocity for static friction masses
-        self.masses[ground_indices and staticFrictionIndices, 2, :2] = 0.0
+        staticFrictionMassIndices = torch.logical_and(ground_indices, staticFrictionIndices)
+        self.masses[staticFrictionMassIndices, 2, :2] = 0.0
         # Calculate position
         self.masses[:, 3] += self.masses[:, 2] * dt
 
@@ -411,10 +414,10 @@ if __name__ == "__main__":
     rsBot_mat = torch.tensor(rsBot[1]).unsqueeze(0).to(device)
 
     popCenterLocs = torch.tensor(bestBot[0]).unsqueeze(0).to(device)
-    popCenterLocs = torch.concat([popCenterLocs, rsBot_loc], axis=0)
+    # popCenterLocs = torch.concat([popCenterLocs, rsBot_loc], axis=0)
 
     popCenterMats = torch.tensor(bestBot[1]).unsqueeze(0).to(device)
-    popCenterMats = torch.concat([popCenterMats, rsBot_mat], axis=0)
+    # popCenterMats = torch.concat([popCenterMats, rsBot_mat], axis=0)
 
     print("Size: ", popCenterLocs.size(), popCenterMats.size()  )
     simulate(popCenterLocs, popCenterMats, visualize=True)

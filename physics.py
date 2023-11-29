@@ -172,7 +172,7 @@ def assignMaterials(masses, springs, popCenterLocs, popCenterMats):
 def newComputeFrictionForces(masses, netForces, mu_s, mu_k):
     horizontalForces = torch.norm(netForces[:, :2], dim=1)
     verticalForces = netForces[:, 2]
-    normalForces = torch.norm(verticalForces, dim=1)
+    normalForces = verticalForces # torch.norm(verticalForces, dim=1)
     velocities = masses[:, 2, :] # (n x 3)
     moving = torch.norm(velocities, dim=1) > 1e-4
     maxStaticFriction = mu_s * normalForces
