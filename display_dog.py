@@ -51,23 +51,24 @@ class MassSpringSystem:
 
         # Compute forces
         netForces = compute_net_spring_forces(self.masses, self.springs)  # Spring forces
-        gravityForces = computeGravityForces(self.masses)
-        netForces += gravityForces  # Gravity forces
+        netForces += computeGravityForces(self.masses)  # Gravity forces
         groundCollisionForces = computeGroundCollisionForces(self.masses)
         netForces += groundCollisionForces  # Ground collision forces
         # Compute friction forces and apply only to the masses at or below ground level
-        frictionForces = newComputeFrictionForces(self.masses, netForces, gravityForces, mu_s, mu_k)
+        staticFrictionIndices, kinecticFrictionForces = newComputeFrictionForces(self.masses, netForces, mu_s, mu_k)
         # frictionForces = computeFrictionForces(self.masses, netForces, groundCollisionForces, mu_s, mu_k)
         ground_indices = (self.masses[:, 3, 2] <= 0)
 
         # Update net forces with friction forces for ground-contacting masses
-        netForces[ground_indices, :2] = frictionForces[ground_indices, :2]
+        netForces[ground_indices and not staticFrictionIndices, :2] = kinecticFrictionForces[ground_indices, :2]
         # print(netForces)
         # Integration step
         # Calculate acceleration
         self.masses[:, 1] = netForces / self.masses[:, 0, 0].unsqueeze(-1)
         # Calculate velocity
         self.masses[:, 2] += self.masses[:, 1] * dt
+        # Zero the velocity for static friction masses
+        self.masses[ground_indices and staticFrictionIndices, 2, :2] = 0.0
         # Calculate position
         self.masses[:, 3] += self.masses[:, 2] * dt
 
@@ -75,8 +76,8 @@ class MassSpringSystem:
         # Apply dampening
         self.masses[:, 2] = self.masses[:, 2] * 0.999
         # print(self.masses[:, 2])
+    
     # Update spring properties in-place according to material
-
     def updateSprings(self, w, T):
         # Update spring constant
         # print("materials: ", self.materials)
