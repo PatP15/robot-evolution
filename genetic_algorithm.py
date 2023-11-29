@@ -26,7 +26,7 @@ class GeneticAlgorithm():
         centerLocations[..., 0] = centerLocations[..., 0] * 5
         centerLocations[..., 1] = centerLocations[..., 1] * 4
         centerLocations[..., 2] = centerLocations[..., 2] * 2
-        centerMaterials = torch.randint(low=1, high=4, size=(self.populationSize, self.numCenters, 1), dtype=torch.float)
+        centerMaterials = torch.randint(low=1, high=5, size=(self.populationSize, self.numCenters, 1), dtype=torch.float)
         return centerLocations.to(device), centerMaterials.to(device)
 
     def evaluate(self):
@@ -62,7 +62,7 @@ class GeneticAlgorithm():
         mutated_locs = self.centerLocs + alpha * torch.randn_like(self.centerLocs)
         zeroes = torch.zeros_like(self.centerLocs)
         torch.clip(mutated_locs, zeroes, maxPos, out=self.centerLocs)  
-        self.centerMats = torch.round(torch.clip(self.centerMats + torch.randn_like(self.centerMats), min=1, max=4))
+        self.centerMats = torch.round(torch.clip(self.centerMats + torch.randn_like(self.centerMats), min=1, max=5))
         # print("end mutate: ", self.centerLocs.device)
 
     def clone(self):
