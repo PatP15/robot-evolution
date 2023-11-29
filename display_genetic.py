@@ -55,23 +55,17 @@ class MassSpringSystem:
         groundCollisionForces = computeGroundCollisionForces(self.masses)
         netForces += groundCollisionForces  # Ground collision forces
         # Compute friction forces and apply only to the masses at or below ground level
-        staticFrictionIndices, kinecticFrictionForces = newComputeFrictionForces(self.masses, netForces, mu_s, mu_k)
-        # frictionForces = computeFrictionForces(self.masses, netForces, groundCollisionForces, mu_s, mu_k)
+        frictionForces = computeFrictionForces(self.masses, netForces, groundCollisionForces, mu_s, mu_k)
         ground_indices = (self.masses[:, 3, 2] <= 0)
 
         # Update net forces with friction forces for ground-contacting masses
-        # print(ground_indices.size(), "\n\n\n", staticFrictionIndices.size())
-        kineticFrictionMassIndices = torch.logical_and(ground_indices, torch.logical_not(staticFrictionIndices))
-        netForces[kineticFrictionMassIndices, :2] = kinecticFrictionForces[kineticFrictionMassIndices, :2]
+        netForces[ground_indices, :2] = frictionForces[ground_indices, :2]
         # print(netForces)
         # Integration step
         # Calculate acceleration
         self.masses[:, 1] = netForces / self.masses[:, 0, 0].unsqueeze(-1)
         # Calculate velocity
         self.masses[:, 2] += self.masses[:, 1] * dt
-        # Zero the velocity for static friction masses
-        staticFrictionMassIndices = torch.logical_and(ground_indices, staticFrictionIndices)
-        self.masses[staticFrictionMassIndices, 2, :2] = 0.0
         # Calculate position
         self.masses[:, 3] += self.masses[:, 2] * dt
 
@@ -79,8 +73,8 @@ class MassSpringSystem:
         # Apply dampening
         self.masses[:, 2] = self.masses[:, 2] * 0.999
         # print(self.masses[:, 2])
-    
     # Update spring properties in-place according to material
+
     def updateSprings(self, w, T):
         # Update spring constant
         # print("materials: ", self.materials)
@@ -89,13 +83,11 @@ class MassSpringSystem:
         self.springs[self.materials == 2, 2] = 2000
         self.springs[self.materials == 3, 2] = 5000
         self.springs[self.materials == 4, 2] = 5000
-        self.springs[self.materials == 5, 2] = 0
         # Update resting lengths
         self.springs[self.materials == 1, 3] = self.og[self.materials == 1]
         self.springs[self.materials == 2, 3] = self.og[self.materials == 2]
         self.springs[self.materials == 3, 3] = self.og[self.materials == 3] * (1 + 0.25 * np.sin(w*T))
         self.springs[self.materials == 4, 3] = self.og[self.materials == 4] * (1 + 0.25 * np.sin(w*T+torch.pi))
-        self.springs[self.materials == 5, 3] = self.og[self.materials == 5]
 
 def concatenate_masses_and_springs(masses, springs, n_copies):
     # Check if n_copies is valid
@@ -215,89 +207,97 @@ def generateSprings(massLocations, massIdxs):
     # springs = np.delete(springs, massIdxs, axis=0)
     return springs
 
-def makeOneDog():
-    massLocations = [(0, 0, 0),
-                     (0, 1, 0),
-                     (0, 3, 0),
-                     (0, 4, 0),
-                     (1, 0, 0),
-                     (1, 1, 0),
-                     (1, 3, 0),
-                     (1, 4, 0),
-                     (0, 0, -1),
-                     (0, 1, -1),
-                     (0, 3, -1),
-                     (0, 4, -1),
-                     (1, 0, -1),
-                     (1, 1, -1),
-                     (1, 3, -1),
-                     (1, 4, -1),
-                     (0.5, 0.5, -2),
-                     (0.5, 3.5, -2)]
-    massLocations = [(x, y, z + 2) for x, y, z in massLocations]
+def makeOneWorm():
+    massLocations = [(0, 0, 0), #0
+                     (0, 1, 0), #1
+                     (0, 2, 0), #2
+                     (1, 0, 0), #3
+                     (1, 1, 0), #4
+                     (1, 2, 0), #5
+                     (0, 0, 1), #6
+                     (0, 1, 1), #7
+                     (0, 2, 1), #8
+                     (1, 0, 1), #9
+                     (1, 1, 1), #10
+                     (1, 2, 1)]
+    # massLocations = [(x, y, z + 2) for x, y, z in massLocations]
 
-    massValues = [1] * 36
+    massValues = [1] * len(massLocations)
     # print(massValues)
 
-    lefthip_masses = [0, 1, 4, 5, 8, 9, 12, 13]
+    lefthip_masses = [0, 1, 3, 4, 6, 7, 9, 10]
     lefthip_springs = generateSprings(massLocations, lefthip_masses)
-    
-    middle_masses = [1,2,5,6,9,10,13,14]
-    middle_springs = generateSprings(massLocations, middle_masses)
 
-    righthip_masses = [2,3,6,7,10,11,14,15]
+    righthip_masses = [2, 1, 4, 5, 7, 8, 10, 11]
     righthip_springs = generateSprings(massLocations, righthip_masses)
-
-    frontlegs = np.array([
-        [12, 16, 10000, math.sqrt(1.5)],
-        [13, 16, 10000, math.sqrt(1.5)],
-        [8, 16, 10000, math.sqrt(1.5)],
-        [9, 16, 10000, math.sqrt(1.5)],
-        [10, 17, 10000, math.sqrt(1.5)],
-        [11, 17, 10000, math.sqrt(1.5)],
-        [14, 17, 10000, math.sqrt(1.5)],
-        [15, 17, 10000, math.sqrt(1.5)],
-    ])
-    backlegs = frontlegs.copy()
-    backlegs[:, :2] += 18
-    # print(backlegs)
-    # all_combinations = list(combinations(range(18), 2))
-    # springs = np.array([[comb[0], comb[1], 10000, np.linalg.norm(np.array(massLocations[comb[0]]) - np.array(massLocations[comb[1]]))] for comb in all_combinations])
-
-    # Front half of dog
-    og = massLocations.copy()
-    for x,y,z in og:
-        massLocations.append((x + 4, y, z))
-
-    # print(len(massLocations))
-    lefthip_masses = np.array([0, 1, 4, 5, 8, 9, 12, 13]) + 18
-    lefthip2_springs = generateSprings(massLocations, lefthip_masses)
     
-    middle_masses = np.array([1,2,5,6,9,10,13,14]) + 18
-    middle2_springs = generateSprings(massLocations, middle_masses)
 
-    righthip_masses = np.array([2,3,6,7,10,11,14,15]) + 18
-    righthip2_springs = generateSprings(massLocations, righthip_masses)
 
-    torso_masses = np.array([1, 2, 9, 10])
-    torso_masses = np.concatenate((torso_masses, torso_masses + 18))
-    torso_springs = generateSprings(massLocations, torso_masses)
-
+   
     masses = generateMasses(massLocations, massValues)
 
-    springs = np.concatenate((lefthip_springs, middle_springs, righthip_springs, frontlegs, 
-                              lefthip2_springs, middle2_springs, righthip2_springs, backlegs, torso_springs), axis=0)
+    springs = np.concatenate((lefthip_springs,righthip_springs), axis=0)
 
-    grid_dimensions = (1, 1)
-    spacing = 3 # adjust this value for the distance between cubes in the grid
-
-    # objs = []
     
     
     masses = torch.tensor(masses, dtype=torch.float)
     springs = torch.tensor(springs, dtype=torch.float)
 
+
     return masses, springs
+
+def make_multilayer_sphere(radius, num_masses_per_layer, num_layers=1):
+    massLocations = []
+    # angle_step = 2 * np.pi / num_masses_per_layer
+    layer_radii = np.linspace(0.5 * radius, radius, num_layers)  # Radii of each spherical layer
+    print("layerradii ", layer_radii)
+
+    # Calculate positions for each spherical layer
+    for layer, layer_radius in enumerate(layer_radii):
+        # Add top and bottom masses (poles)
+        massLocations.append((0, 0, layer_radius))  # Top (North Pole)
+        massLocations.append((0, 0, -layer_radius)) # Bottom (South Pole)
+
+        # Evenly distribute other masses
+        for lat in range(1, num_masses_per_layer - 1):  # Avoid poles
+            phi = lat * (np.pi / num_masses_per_layer)  # Angle from z-axis
+            for lon in range(num_masses_per_layer):
+                theta = lon * (2 * np.pi / num_masses_per_layer)  # Angle in xy-plane
+                x = layer_radius * np.sin(phi) * np.cos(theta)
+                y = layer_radius * np.sin(phi) * np.sin(theta)
+                z = layer_radius * np.cos(phi)
+                massLocations.append((x, y, z))
+    massLocations = [(x, y, z + radius) for x, y, z in massLocations]
+    # Generate springs between adjacent masses and between layers
+    springs = []
+    spring_constant = 10000
+
+    # Connect adjacent masses in the same layer
+    for layer in range(num_layers):
+        base_index = layer * num_masses_per_layer * num_masses_per_layer
+        for lat in range(num_masses_per_layer):
+            for lon in range(num_masses_per_layer-1):
+                current_index = base_index + lat * num_masses_per_layer + lon
+                # Connect with next mass in the same latitude
+                next_lon_index = base_index + lat * num_masses_per_layer + (lon + 1) % num_masses_per_layer
+                restinglength = np.linalg.norm(np.array(massLocations[current_index]) - np.array(massLocations[next_lon_index]))
+                springs.append((current_index, next_lon_index, spring_constant, restinglength))  # Resting length to be calculated
+                # Connect with next mass in the same longitude
+                restinglength = np.linalg.norm(np.array(massLocations[current_index]) - np.array(massLocations[(current_index + num_masses_per_layer) % (num_masses_per_layer * num_masses_per_layer)]))
+                next_lat_index = base_index + ((lat + 1) % num_masses_per_layer) * num_masses_per_layer + lon
+                springs.append((current_index, next_lat_index, spring_constant, restinglength))  # Resting length to be calculated
+
+    # Connect masses between layers
+    # [This part of the code would need to be carefully written to ensure proper connections between layers]
+
+    massValues = [1] * len(massLocations)
+    masses = generateMasses(massLocations, massValues)
+    print("Masses len: ", len(masses))
+    masses = torch.tensor(masses, dtype=torch.float)
+    springs = torch.tensor(springs, dtype=torch.float)
+
+    return masses, springs
+
 
 def simulate(popCenterLocs, popCenterMats, visualize=False):
     '''
@@ -306,12 +306,15 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
         2: k=20000 b=c=0
         3: k=5000 b=0.25 c=0
         4: k=5000 b=0.25 c=pi
-        5: "air" -> k=0
         w=2*pi
     '''
     # print("Pop device: ", popCenterLocs.device)
     populationSize = popCenterLocs.size()[0]
-    masses, springs = makeOneDog()
+    # Example usage
+    radius = 4  # Radius of the sphere
+    num_masses_per_level = 8  # Number of masses per level
+    masses, springs = make_multilayer_sphere(radius, num_masses_per_level)
+    # masses, springs = makeOneWorm()
     masses, springs = concatenate_masses_and_springs(masses, springs, populationSize)
     masses = masses.to(device)
     springs = springs.to(device)
@@ -392,11 +395,11 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
         
         end = time.time()
         movingAverage.append(end - start)
-        print(sum(movingAverage) / len(movingAverage))
+        # print(sum(movingAverage) / len(movingAverage))
         
         if int(T*1000) % 1000 == 0:
            distances = torch.norm(dog.masses[::36, 3, :][:, :2] - initial_positions[:, :2], dim=1)
-           print(distances)
+        #    print(distances)
 
     final_positions = dog.masses[::36, 3, :].clone()
     distances = torch.norm(final_positions[:, :2] - initial_positions[:, :2], dim=1)
@@ -405,22 +408,22 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
 
 if __name__ == "__main__":
     
-
     with open("best_robot.pkl", 'rb') as f:
         bestBot = pickle.load(f)
 
-    with open("best_robot_rs.pkl", 'rb') as f:
-        rsBot = pickle.load(f)
+    # with open("best_robot_rs.pkl", 'rb') as f:
+    #     rsBot = pickle.load(f)
 
-    print(bestBot)
-    rsBot_loc = torch.tensor(rsBot[0]).unsqueeze(0).to(device)
-    rsBot_mat = torch.tensor(rsBot[1]).unsqueeze(0).to(device)
-
+    # print(bestBot)
+    # rsBot_loc = torch.tensor(rsBot[0]).unsqueeze(0).to(device)
+    # rsBot_mat = torch.tensor(rsBot[1]).unsqueeze(0).to(device)
+    # print(bestBot[1])
+    # bestBot = (np.array([[0.5, 0, 0], [0.5, 2, 0]]), np.array([[1], [2]]))
     popCenterLocs = torch.tensor(bestBot[0]).unsqueeze(0).to(device)
     # popCenterLocs = torch.concat([popCenterLocs, rsBot_loc], axis=0)
 
     popCenterMats = torch.tensor(bestBot[1]).unsqueeze(0).to(device)
     # popCenterMats = torch.concat([popCenterMats, rsBot_mat], axis=0)
 
-    print("Size: ", popCenterLocs.size(), popCenterMats.size()  )
+    # print("Size: ", popCenterLocs.size(), popCenterMats.size())
     simulate(popCenterLocs, popCenterMats, visualize=True)

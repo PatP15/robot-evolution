@@ -105,6 +105,7 @@ class GeneticAlgorithm():
         children = torch.concat([children1, children2], axis=0)
         # children = children.reshape((-1, 2, self.centerMats.shape[2]))
         self.centerMats = torch.concat([self.centerMats, children], axis=0)
+        self.centerMats = torch.round(torch.clip(self.centerMats, min=1, max=4))
 
         # print("After recombine: self center locs ", self.centerLocs.size(), self.centerMats.size())
 
