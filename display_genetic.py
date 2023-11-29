@@ -246,49 +246,56 @@ def makeOneWorm():
 
     return masses, springs
 
-def make_multilayer_sphere(radius, num_masses_per_layer, num_layers=1):
+def make_multilayer_sphere(radius, num_masses_per_layer, num_layers=4):
     massLocations = []
-    # angle_step = 2 * np.pi / num_masses_per_layer
-    layer_radii = np.linspace(0.5 * radius, radius, num_layers)  # Radii of each spherical layer
-    print("layerradii ", layer_radii)
+    springs = []
+    spring_constant = 10000
 
-    # Calculate positions for each spherical layer
-    for layer, layer_radius in enumerate(layer_radii):
-        # Add top and bottom masses (poles)
-        massLocations.append((0, 0, layer_radius))  # Top (North Pole)
-        massLocations.append((0, 0, -layer_radius)) # Bottom (South Pole)
+    # Generate mass locations for each layer
+    for layer in range(num_layers):
+        layer_radius = radius * (layer + 1) / num_layers
 
-        # Evenly distribute other masses
-        for lat in range(1, num_masses_per_layer - 1):  # Avoid poles
-            phi = lat * (np.pi / num_masses_per_layer)  # Angle from z-axis
+        # Even distribution excluding poles
+        for lat in range(1, num_masses_per_layer - 1):  # Exclude the poles
+            phi = lat * (np.pi / (num_masses_per_layer - 1))  # Angle from z-axis
             for lon in range(num_masses_per_layer):
-                theta = lon * (2 * np.pi / num_masses_per_layer)  # Angle in xy-plane
+                theta = lon * (2 * np.pi / num_masses_per_layer)
                 x = layer_radius * np.sin(phi) * np.cos(theta)
                 y = layer_radius * np.sin(phi) * np.sin(theta)
                 z = layer_radius * np.cos(phi)
                 massLocations.append((x, y, z))
+
+    # Adjust mass locations for ground level
     massLocations = [(x, y, z + radius) for x, y, z in massLocations]
-    # Generate springs between adjacent masses and between layers
-    springs = []
-    spring_constant = 10000
 
-    # Connect adjacent masses in the same layer
+    # Connect masses within each layer and between layers
     for layer in range(num_layers):
-        base_index = layer * num_masses_per_layer * num_masses_per_layer
-        for lat in range(num_masses_per_layer):
-            for lon in range(num_masses_per_layer-1):
-                current_index = base_index + lat * num_masses_per_layer + lon
-                # Connect with next mass in the same latitude
-                next_lon_index = base_index + lat * num_masses_per_layer + (lon + 1) % num_masses_per_layer
-                restinglength = np.linalg.norm(np.array(massLocations[current_index]) - np.array(massLocations[next_lon_index]))
-                springs.append((current_index, next_lon_index, spring_constant, restinglength))  # Resting length to be calculated
-                # Connect with next mass in the same longitude
-                restinglength = np.linalg.norm(np.array(massLocations[current_index]) - np.array(massLocations[(current_index + num_masses_per_layer) % (num_masses_per_layer * num_masses_per_layer)]))
-                next_lat_index = base_index + ((lat + 1) % num_masses_per_layer) * num_masses_per_layer + lon
-                springs.append((current_index, next_lat_index, spring_constant, restinglength))  # Resting length to be calculated
+        layer_base_index = layer * (num_masses_per_layer - 2) * num_masses_per_layer
 
-    # Connect masses between layers
-    # [This part of the code would need to be carefully written to ensure proper connections between layers]
+        for lat in range(num_masses_per_layer - 2):
+            for lon in range(num_masses_per_layer):
+                current_index = layer_base_index + lat * num_masses_per_layer + lon
+
+                # Connect with next mass in the same latitude (wrap-around)
+                next_lon_index = layer_base_index + lat * num_masses_per_layer + (lon + 1) % num_masses_per_layer
+                resting_length_lon = np.linalg.norm(np.array(massLocations[current_index]) - np.array(massLocations[next_lon_index]))
+                springs.append((current_index, next_lon_index, spring_constant, resting_length_lon))
+
+                # Connect with next mass in the same longitude
+                if lat < num_masses_per_layer - 3:
+                    next_lat_index = layer_base_index + (lat + 1) * num_masses_per_layer + lon
+                    resting_length_lat = np.linalg.norm(np.array(massLocations[current_index]) - np.array(massLocations[next_lat_index]))
+                    springs.append((current_index, next_lat_index, spring_constant, resting_length_lat))
+
+        # Connect to corresponding masses in the next layer
+        if layer < num_layers - 1:
+            next_layer_base_index = (layer + 1) * (num_masses_per_layer - 2) * num_masses_per_layer
+            for i in range((num_masses_per_layer - 2) * num_masses_per_layer):
+                current_mass_index = layer_base_index + i
+                next_layer_mass_index = next_layer_base_index + i
+                resting_length_inter_layer = np.linalg.norm(np.array(massLocations[current_mass_index]) - np.array(massLocations[next_layer_mass_index]))
+                springs.append((current_mass_index, next_layer_mass_index, spring_constant, resting_length_inter_layer))
+
 
     massValues = [1] * len(massLocations)
     masses = generateMasses(massLocations, massValues)
@@ -311,7 +318,7 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
     # print("Pop device: ", popCenterLocs.device)
     populationSize = popCenterLocs.size()[0]
     # Example usage
-    radius = 4  # Radius of the sphere
+    radius = 2  # Radius of the sphere
     num_masses_per_level = 8  # Number of masses per level
     masses, springs = make_multilayer_sphere(radius, num_masses_per_level)
     # masses, springs = makeOneWorm()
