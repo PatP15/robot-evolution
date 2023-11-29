@@ -177,6 +177,8 @@ def newComputeFrictionForces(masses, netForces, gravityForces, mu_s, mu_k):
     maxStaticFriction = mu_s * normalForces
     # Normalize the velocity vectors and multiply by the friction coefficient and normal force
     normalizedVelocities = velocities / (velocities.norm(dim=1, keepdim=True) + 1e-8)
+    print("Horizontal Forces: ", horizontalForces.size())
+    print("Max Static Friction: ", maxStaticFriction.size())
     frictionalForces = torch.where(horizontalForces < maxStaticFriction, -normalizedVelocities * mu_k * normalForces.unsqueeze(-1), -netForces) # * moving.float().unsqueeze(-1)
     return frictionalForces
 
