@@ -253,7 +253,7 @@ def makeBoxes():
     springs = []
 
     # Define parameters for the worm
-    num_cubes = 3  # Number of cubes in each dimension
+    num_cubes = 5  # Number of cubes in each dimension
     cube_size = 1  # Size of each cube
 
     # Function to add cube masses
@@ -279,12 +279,19 @@ def makeBoxes():
     # Convert to tensors
     massValues = [1] * len(massLocations)  # Assuming each mass has a value of 1
     masses = torch.tensor(generateMasses(massLocations, massValues), dtype=torch.float)
+
+    print("Springs: ", springs)
+    print("Springs len: ", len(springs))
+
+    # Remove any duplicate springs (i.e. springs that connect the same two masses)
+    springs = np.unique(springs, axis=0)
+    print("Springs len: ", len(springs))
     springs = torch.tensor(springs, dtype=torch.float)
 
     return masses, springs
 
 
-def make_multilayer_sphere(radius, num_masses_per_layer, num_layers=4):
+def make_multilayer_sphere(radius, num_masses_per_layer, num_layers=5):
     massLocations = []
     springs = []
     spring_constant = 10000
@@ -338,6 +345,8 @@ def make_multilayer_sphere(radius, num_masses_per_layer, num_layers=4):
     massValues = [1] * len(massLocations)
     masses = generateMasses(massLocations, massValues)
     print("Masses len: ", len(masses))
+    print("Springs len: ", len(springs))
+    print("Springs: ", springs)
     masses = torch.tensor(masses, dtype=torch.float)
     springs = torch.tensor(springs, dtype=torch.float)
 
@@ -375,6 +384,7 @@ def makeOnePyramid():
     # Convert to tensors
     massValues = [1] * len(massLocations)  # Assuming each mass has a value of 1
     masses = torch.tensor(generateMasses(massLocations, massValues), dtype=torch.float)
+    springs = np.unique(springs, axis=0)
     springs = torch.tensor(springs, dtype=torch.float)
 
     return masses, springs
@@ -399,10 +409,11 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
     num_levels = 3
     # masses, springs = create_fractal_tetrahedrons(base_size, height, num_levels)
     # masses, springs = make_multilayer_sphere(radius, num_masses_per_level)
-    # masses, springs = makeBoxes()
-    masses, springs = makeOnePyramid()
+    masses, springs = makeBoxes()
+    # masses, springs = makeOnePyramid()
     # masses, springs = makeOneWorm()
     masses, springs = concatenate_masses_and_springs(masses, springs, populationSize)
+    print
     masses = masses.to(device)
     springs = springs.to(device)
     # print("spring", len(springs))
