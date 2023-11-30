@@ -304,8 +304,12 @@ class GeneticAlgorithmPareto():
         self.centerMats = torch.concat([self.centerMats, children], axis=0)
         self.centerMats = torch.round(torch.clip(self.centerMats, min=1, max=4))
 
-        newAges = self.ages.reshape(self.ages.shape[0] // 2, 2)
-        newAges = torch.max(newAges, dim=1).values.repeat_interleave(2) + 1
+        split = self.ages.shape[0] // 2
+        parents1 = self.ages[:split]
+        parents2 = self.ages[split:]
+        newAges = torch.max(parents1, parents2).repeat_interleave(2) + 1
+        # newAges = self.ages.reshape(self.ages.shape[0] // 2, 2)
+        # newAges = torch.max(newAges, dim=1).values.repeat_interleave(2) + 1
         self.ages = self.ages + 1
         self.ages = torch.concat([self.ages, newAges], axis=0)
 
