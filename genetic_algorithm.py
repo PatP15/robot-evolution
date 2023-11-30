@@ -168,6 +168,7 @@ class GeneticAlgorithmPareto():
     def __init__(self, populationSize, numCenters):
         self.populationSize = populationSize
         self.numCenters = numCenters
+        self.ages = torch.zeros(size=(self.populationSize,), dtype=torch.float)
         self.centerLocs, self.centerMats = self.randomSample()
         
 
@@ -189,10 +190,29 @@ class GeneticAlgorithmPareto():
 
     def evaluate(self):
         return simulate(self.centerLocs, self.centerMats)
+    
+    def calculatePareto(distances, ages):
+        points = torch.concat([distances, ages], dim=1)
+
+        # Assuming points is a tensor of shape (n, 2)
+        n = points.shape[0]
+
+        # Expand dimensions to allow broadcasting: shapes become (n, 1, 2) and (1, n, 2)
+        p1 = points.unsqueeze(1)  # Shape: (n, 1, 2)
+        p2 = points.unsqueeze(0)  # Shape: (1, n, 2)
+
+        # Compare points: (n, n, 2)
+        # A point p1 dominates p2 if it is less or equal in all dimensions and strictly less in at least one dimension
+        domination = torch.all(p1 <= p2, dim=2) & torch.any(p1 < p2, dim=2)
+
+        # Count the number of dominations for each point: sum over rows
+        domination_counts = domination.sum(dim=0)
+
+        return domination_counts
 
     def select(self):
         distances = self.evaluate()
-        distances[distances > 100] = 0
+        # distances[distances > 100] = 0
         # Optionally normalize the tensor to make it a probability distribution
         # distances = distances / distances.sum()
 
@@ -203,11 +223,13 @@ class GeneticAlgorithmPareto():
         distances = distances[selectedIndices]
         self.centerLocs = self.centerLocs[selectedIndices]
         self.centerMats = self.centerMats[selectedIndices]
+        self.ages = self.ages[selectedIndices]
         
         sortedIndices = torch.argsort(-1 * distances) # -1 is to sort from largest to smallest
         distances = distances[sortedIndices]
         self.centerLocs = self.centerLocs[sortedIndices]
         self.centerMats = self.centerMats[sortedIndices]
+        self.ages = self.ages[sortedIndices]
 
         return distances[0]
 
@@ -234,9 +256,6 @@ class GeneticAlgorithmPareto():
         # tempCenterLocs = self.centerLocs.reshape((self.centerLocs.shape[0] // 2, -1))
         split = self.centerLocs.shape[0] // 2
         parents1 = self.centerLocs[:split, :, ...]
-        if self.centerLocs.shape[0] % 2 == 1:
-            split += 1
-        
         parents2 = self.centerLocs[split:, :, ...]
         # print("parents1: ", parents1)
         # print("parents2: ", parents2)
@@ -253,8 +272,6 @@ class GeneticAlgorithmPareto():
         # tempCenterMats = self.centerMats.reshape((self.centerMats.shape[0] // 2, 2))
         split = self.centerMats.shape[0] // 2
         parents1 = self.centerMats[:split, :, ...]
-        if self.centerMats.shape[0] % 2 == 1:
-            split += 1
         parents2 = self.centerMats[split:, :, ...]
         # print("parents1: ", parents1)
         # print("parents2: ", parents2)
@@ -264,6 +281,11 @@ class GeneticAlgorithmPareto():
         # children = children.reshape((-1, 2, self.centerMats.shape[2]))
         self.centerMats = torch.concat([self.centerMats, children], axis=0)
         self.centerMats = torch.round(torch.clip(self.centerMats, min=1, max=4))
+
+        split = self.ages.shape[0] // 2
+        newAges = self.ages.reshape(self.ages.shape[0] // 2, 2)
+        newAges = torch.max(newAges, dim=1) + 1
+        self.ages = torch.concat([self.ages, newAges], axis=0)
 
         # print("After recombine: self center locs ", self.centerLocs.size(), self.centerMats.size())
 
@@ -280,7 +302,7 @@ class GeneticAlgorithmPareto():
                 # print("Population Size: ", self.centerLocs.size()[0])
                 # print("start run: ", self.centerLocs.device)
                 torch.cuda.synchronize()
-                tmpDistance = self.select() 
+                tmpDistance = self.select()
                 torch.cuda.synchronize()
                 print("Eval: ", i*self.populationSize, ": ", tmpDistance.item())
                 if tmpDistance > maxDistance:
