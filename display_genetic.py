@@ -89,12 +89,18 @@ def draw_shadow(cube):
     glEnd()
 
 def draw_spheres_at_vertices(cube):
-    glColor3f(1, 0, 0)  # Color of the spheres
+      # Color of the spheres
     for i in range(len(cube.vertices)):
         glPushMatrix()
         glTranslatef(*(cube.vertices[i]))
+        #change color if z<0
+        if cube.vertices[i][2] < 0:
+            glColor3f(0, 1, 0)
+        else:
+            glColor3f(1, 0, 0)
         glutSolidSphere(cube.vertex_sizes[i], 20, 20)  # Draw a sphere of radius 0.1 with 20 slices and 20 stacks
         glPopMatrix()
+
 
 def mouse_button_callback(event):
     global mouse_dragging, last_mouse_x, last_mouse_y, camera_distance
@@ -130,6 +136,14 @@ def mouse_motion_callback(event):
 
     last_mouse_x, last_mouse_y = event.pos
     # ... [rest of the code remains unchanged]
+    
+def calculate_center_of_mass(masses):
+    # Assumes masses is a tensor with shape [N, 4, 3] where N is the number of masses
+    # and each mass has x, y, z positions
+    total_mass_position = torch.sum(masses[:, 3, :], dim=0)
+    number_of_masses = masses.shape[0]
+    center_of_mass = total_mass_position / number_of_masses
+    return center_of_mass
 
 def generateSprings(massLocations, massIdxs):
     numMasses = len(massIdxs)
@@ -358,7 +372,7 @@ def simulate(popCenterLocs, popCenterMats, ogMasses, ogSprings, visualize=False)
     # og = springs[:, 3].clone()
     # print(og)
     
-    dt = 0.001
+    dt = 0.004
     T = 0
     N = masses.size(0)
     netForces = torch.zeros((N, 3))
@@ -390,7 +404,10 @@ def simulate(popCenterLocs, popCenterMats, ogMasses, ogSprings, visualize=False)
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
             glLoadIdentity()
             gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
-            glTranslatef(camera_translation[0], camera_translation[1], -camera_distance)
+            center_of_mass = calculate_center_of_mass(obj.masses)
+            camera_target_position = center_of_mass.numpy()  # Convert to numpy array if necessary
+            glTranslatef(-camera_target_position[0], -camera_target_position[1], -camera_distance - camera_target_position[2])
+
             glRotatef(angle_x, 1, 0, 0)
             glRotatef(angle_y, 0, 0, 1)
             # print(cube.edges)
@@ -440,7 +457,8 @@ if __name__ == "__main__":
     # print(bestBot)
     # rsBot_loc = torch.tensor(rsBot[0]).unsqueeze(0).to(device)
     # rsBot_mat = torch.tensor(rsBot[1]).unsqueeze(0).to(device)
-    # print(bestBot[1])
+    print(bestBot[0])
+    print(bestBot[1])
     # bestBot = (np.array([[0.5, 0, 0], [0.5, 2, 0]]), np.array([[1], [2]]))
     popCenterLocs = torch.tensor(bestBot[0]).unsqueeze(0).to(device)
     # popCenterLocs = torch.concat([popCenterLocs, rsBot_loc], axis=0)
