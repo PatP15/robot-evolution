@@ -155,13 +155,6 @@ class GeneticAlgorithm():
             print("Max Distance: ", maxDistance)
             print("Best Bot: ", bestBot)
 
-def main():
-    ga = GeneticAlgorithm(10, 6)
-    ga.run(iterations=50)
-
-if __name__ == "__main__":
-    main()
-
 
 
 class GeneticAlgorithmPareto():
