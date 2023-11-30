@@ -107,7 +107,7 @@ class GeneticAlgorithm():
         children = torch.concat([children1, children2], axis=0)
         # children = children.reshape((-1, 2, self.centerMats.shape[2]))
         self.centerMats = torch.concat([self.centerMats, children], axis=0)
-        self.centerMats = torch.round(torch.clip(self.centerMats, min=1, max=4))
+        self.centerMats = torch.round(torch.clip(self.centerMats, min=1, max=5))
 
         # print("After recombine: self center locs ", self.centerLocs.size(), self.centerMats.size())
 
@@ -302,7 +302,7 @@ class GeneticAlgorithmPareto():
         children = torch.concat([children1, children2], axis=0)
         # children = children.reshape((-1, 2, self.centerMats.shape[2]))
         self.centerMats = torch.concat([self.centerMats, children], axis=0)
-        self.centerMats = torch.round(torch.clip(self.centerMats, min=1, max=4))
+        self.centerMats = torch.round(torch.clip(self.centerMats, min=1, max=5))
 
         split = self.ages.shape[0] // 2
         parents1 = self.ages[:split]
@@ -369,8 +369,8 @@ class GeneticAlgorithmPareto():
             print("Best Bot: ", bestBot)
 
 def main():
-    ga = GeneticAlgorithmPareto(10000, 6)
-    ga.run(iterations=50)
+    ga = GeneticAlgorithmPareto(1000, 12)
+    ga.run(iterations=10000)
 
 if __name__ == "__main__":
     main()
