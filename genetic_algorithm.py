@@ -307,6 +307,7 @@ class GeneticAlgorithmPareto():
                 # print("Iteration: ", i)
                 # print("Population Size: ", self.centerLocs.size()[0])
                 # print("start run: ", self.centerLocs.device)
+                print("Population Ages:\n", self.ages)
                 torch.cuda.synchronize()
                 tmpDistance = self.select()
                 torch.cuda.synchronize()
