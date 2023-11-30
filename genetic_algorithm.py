@@ -1,6 +1,7 @@
 import torch
 import numpy as np
-from display_dog import simulate
+from display_genetic import simulate
+from display_genetic import makeBoxes, make_multilayer_sphere, makePyramid
 import csv 
 import pickle
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -170,6 +171,9 @@ class GeneticAlgorithmPareto():
         self.numCenters = numCenters
         self.ages = torch.zeros(size=(self.populationSize,), dtype=torch.float)
         self.centerLocs, self.centerMats = self.randomSample()
+        self.box_masses, self.box_springs = makeBoxes()
+        self.sphere_masses, self.sphere_springs = make_multilayer_sphere()
+        self.pyramid_masses, self.pyramid_springs = makePyramid()
         
 
     def randomSample(self):
@@ -189,7 +193,9 @@ class GeneticAlgorithmPareto():
         return centerLocations.to(device), centerMaterials.to(device)
 
     def evaluate(self):
-        return simulate(self.centerLocs, self.centerMats)
+        # change here to evaluate with different objects
+        # for now just putting in boxes
+        return simulate(self.centerLocs, self.centerMats, self.box_masses, self.box_springs)
     
     def calculatePareto(distances, ages):
         points = torch.concat([distances, ages], dim=1)

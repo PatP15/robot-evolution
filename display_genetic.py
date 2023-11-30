@@ -20,75 +20,7 @@ last_mouse_x, last_mouse_y = 0, 0
 camera_distance = 10  # Adjust this for initial zoom level
 camera_translation = [0, 0]  # Translation offsets for panning
 
-class MassSpringSystem:
-    def __init__(self, masses, springs, materials):
-        # print("init: ", springs)
-        self.masses = masses.clone()
-        self.springs = springs.clone()
-        self.materials = materials.clone()
-        self.og = springs[:, 3].clone()
-        self.update_vertices()
-        self.create_edges()
 
-        # self.masses = masses.clone()
-        # print("init edges: ", self.edges)
-    
-    def update_vertices(self):
-        self.vertices = self.masses[:, 3, :]
-        # print("vertices: ", self.vertices)
-        self.vertex_sizes = self.masses[:, 0, 0]/20
-        # print("vertex_sizes ", self.vertex_sizes)
-
-    def create_edges(self):
-        # print("create_edges: ", springs)
-        # print(self.springs[:, :2])
-        self.edges = self.springs[:, :2]  # Get the first two columns which are the vertex indices for each spring
-        # print("edges: ", self.edges)
-
-
-    def simulate(self, dt):
-        mu_s = 1  # Static friction coefficient
-        mu_k = 0.5 # Kinetic friction coefficient
-
-        # Compute forces
-        netForces = compute_net_spring_forces(self.masses, self.springs)  # Spring forces
-        netForces += computeGravityForces(self.masses)  # Gravity forces
-        groundCollisionForces = computeGroundCollisionForces(self.masses)
-        netForces += groundCollisionForces  # Ground collision forces
-        # Compute friction forces and apply only to the masses at or below ground level
-        frictionForces = computeFrictionForces(self.masses, netForces, groundCollisionForces, mu_s, mu_k)
-        ground_indices = (self.masses[:, 3, 2] <= 0)
-
-        # Update net forces with friction forces for ground-contacting masses
-        netForces[ground_indices, :2] = frictionForces[ground_indices, :2]
-        # print(netForces)
-        # Integration step
-        # Calculate acceleration
-        self.masses[:, 1] = netForces / self.masses[:, 0, 0].unsqueeze(-1)
-        # Calculate velocity
-        self.masses[:, 2] += self.masses[:, 1] * dt
-        # Calculate position
-        self.masses[:, 3] += self.masses[:, 2] * dt
-
-
-        # Apply dampening
-        self.masses[:, 2] = self.masses[:, 2] * 0.999
-        # print(self.masses[:, 2])
-    # Update spring properties in-place according to material
-
-    def updateSprings(self, w, T):
-        # Update spring constant
-        # print("materials: ", self.materials)
-        # print("springs: ", self.springs.shape)
-        self.springs[self.materials == 1, 2] = 1000
-        self.springs[self.materials == 2, 2] = 2000
-        self.springs[self.materials == 3, 2] = 5000
-        self.springs[self.materials == 4, 2] = 5000
-        # Update resting lengths
-        self.springs[self.materials == 1, 3] = self.og[self.materials == 1]
-        self.springs[self.materials == 2, 3] = self.og[self.materials == 2]
-        self.springs[self.materials == 3, 3] = self.og[self.materials == 3] * (1 + 0.25 * np.sin(w*T))
-        self.springs[self.materials == 4, 3] = self.og[self.materials == 4] * (1 + 0.25 * np.sin(w*T+torch.pi))
 
 def concatenate_masses_and_springs(masses, springs, n_copies):
     # Check if n_copies is valid
@@ -133,8 +65,6 @@ def draw_checkered_ground(size, squares):
             glVertex3f(-half_size + (x+1) * square_size, -half_size + (y+1) * square_size, 0)  # Adjusted z to 0
             glVertex3f(-half_size + (x+1) * square_size, -half_size + y * square_size, 0)  # Adjusted z to 0
             glEnd()
-
-
 
 def draw_cube(cube):
     glColor3f(0, 0, 1)  # Set color to blue
@@ -280,12 +210,12 @@ def makeBoxes():
     massValues = [1] * len(massLocations)  # Assuming each mass has a value of 1
     masses = torch.tensor(generateMasses(massLocations, massValues), dtype=torch.float)
 
-    print("Springs: ", springs)
-    print("Springs len: ", len(springs))
+    # print("Springs: ", springs)
+    # print("Springs len: ", len(springs))
 
     # Remove any duplicate springs (i.e. springs that connect the same two masses)
     springs = np.unique(springs, axis=0)
-    print("Springs len: ", len(springs))
+    # print("Springs len: ", len(springs))
     springs = torch.tensor(springs, dtype=torch.float)
 
     return masses, springs
@@ -346,7 +276,7 @@ def make_multilayer_sphere(radius, num_masses_per_layer, num_layers=5):
     masses = generateMasses(massLocations, massValues)
     print("Masses len: ", len(masses))
     print("Springs len: ", len(springs))
-    print("Springs: ", springs)
+    # print("Springs: ", springs)
     masses = torch.tensor(masses, dtype=torch.float)
     springs = torch.tensor(springs, dtype=torch.float)
 
@@ -390,7 +320,7 @@ def makeOnePyramid():
     return masses, springs
 
 
-def simulate(popCenterLocs, popCenterMats, visualize=False):
+def simulate(popCenterLocs, popCenterMats, ogMasses, ogSprings, visualize=False):
     '''
         materials
         1: k=1000 b=c=0
@@ -401,19 +331,11 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
     '''
     # print("Pop device: ", popCenterLocs.device)
     populationSize = popCenterLocs.size()[0]
-    # Example usage
-    radius = 2  # Radius of the sphere
-    num_masses_per_level = 8  # Number of masses per level
-    base_size = 1
-    height = 1
-    num_levels = 3
-    # masses, springs = create_fractal_tetrahedrons(base_size, height, num_levels)
-    # masses, springs = make_multilayer_sphere(radius, num_masses_per_level)
-    masses, springs = makeBoxes()
-    # masses, springs = makeOnePyramid()
-    # masses, springs = makeOneWorm()
-    masses, springs = concatenate_masses_and_springs(masses, springs, populationSize)
-    print
+    
+
+    ogMassNum = ogMasses.size()[0]
+    masses, springs = concatenate_masses_and_springs(ogMasses.clone(), ogSprings.clone(), populationSize)
+    # print
     masses = masses.to(device)
     springs = springs.to(device)
     # print("spring", len(springs))
@@ -422,9 +344,10 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
 
     materials = assignMaterials(masses, springs, popCenterLocs, popCenterMats) # torch.randint(1, 4, size=(springs.size()[0],))
     # print(materials.size())
-    dog = (MassSpringSystem(masses, springs, materials))
-
-    initial_positions = dog.masses[::36, 3, :].clone()
+    obj = (MassSpringSystem(masses, springs, materials))
+    print(obj.masses.size())
+    initial_positions = obj.masses[::ogMassNum, 3, :].clone()
+    print("Initial Positions: ", initial_positions)
     # print("Materials:\n\n", materials)
     # print("Springs:\n\n", springs)
 
@@ -476,13 +399,13 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
             draw_checkered_ground(100, 100)
 
         
-        dog.updateSprings(w, T)
-        dog.simulate(dt)
+        obj.updateSprings(w, T)
+        obj.simulate(dt)
         if visualize:
-            draw_shadow(dog)
-            draw_cube(dog)
+            draw_shadow(obj)
+            draw_cube(obj)
             # draw_cube_faces(cube)
-            draw_spheres_at_vertices(dog)
+            draw_spheres_at_vertices(obj)
         
 
         T += dt
@@ -495,12 +418,14 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
         movingAverage.append(end - start)
         # print(sum(movingAverage) / len(movingAverage))
         
-        if int(T*1000) % 1000 == 0:
-           distances = torch.norm(dog.masses[::36, 3, :][:, :2] - initial_positions[:, :2], dim=1)
+        if int(T*10) % 10 == 0:
+            distances = torch.max(obj.masses[::ogMassNum, 3, :][:, :2] - initial_positions[:, :2], dim=1).values
+            print("Distances: ", distances)
         #    print(distances)
 
-    final_positions = dog.masses[::36, 3, :].clone()
-    distances = torch.norm(final_positions[:, :2] - initial_positions[:, :2], dim=1)
+    final_positions = obj.masses[::ogMassNum, 3, :].clone()
+    print("Final Positions: ", final_positions)
+    distances = torch.max(final_positions[:, :2] - initial_positions[:, :2], dim=1).values
     #print(distances)
     return distances
 
@@ -524,4 +449,16 @@ if __name__ == "__main__":
     # popCenterMats = torch.concat([popCenterMats, rsBot_mat], axis=0)
 
     # print("Size: ", popCenterLocs.size(), popCenterMats.size())
-    simulate(popCenterLocs, popCenterMats, visualize=True)
+
+    radius = 2  # Radius of the sphere
+    num_masses_per_level = 8  # Number of masses per level
+    base_size = 1
+    height = 1
+    num_levels = 3
+    
+    # masses, springs = create_fractal_tetrahedrons(base_size, height, num_levels)
+    # masses, springs = make_multilayer_sphere(radius, num_masses_per_level)
+    # masses, springs = makeOnePyramid()
+    # masses, springs = makeOneWorm()
+    masses, springs = makeBoxes()
+    simulate(popCenterLocs, popCenterMats, masses, springs, visualize=True)
