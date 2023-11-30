@@ -320,7 +320,7 @@ def makeOnePyramid():
     return masses, springs
 
 
-def simulate(popCenterLocs, popCenterMats, visualize=False):
+def simulate(popCenterLocs, popCenterMats, ogMasses, ogSprings, visualize=False):
     '''
         materials
         1: k=1000 b=c=0
@@ -331,21 +331,10 @@ def simulate(popCenterLocs, popCenterMats, visualize=False):
     '''
     # print("Pop device: ", popCenterLocs.device)
     populationSize = popCenterLocs.size()[0]
-    # Example usage
-    radius = 2  # Radius of the sphere
-    num_masses_per_level = 8  # Number of masses per level
-    base_size = 1
-    height = 1
-    num_levels = 3
     
-    # masses, springs = create_fractal_tetrahedrons(base_size, height, num_levels)
-    # masses, springs = make_multilayer_sphere(radius, num_masses_per_level)
-    masses, springs = makeBoxes()
-    # masses, springs = makeOnePyramid()
-    # masses, springs = makeOneWorm()
 
-    ogMassNum = masses.size()[0]
-    masses, springs = concatenate_masses_and_springs(masses, springs, populationSize)
+    ogMassNum = ogMasses.size()[0]
+    masses, springs = concatenate_masses_and_springs(ogMasses.clone(), ogSprings.clone(), populationSize)
     # print
     masses = masses.to(device)
     springs = springs.to(device)
@@ -460,4 +449,16 @@ if __name__ == "__main__":
     # popCenterMats = torch.concat([popCenterMats, rsBot_mat], axis=0)
 
     # print("Size: ", popCenterLocs.size(), popCenterMats.size())
-    simulate(popCenterLocs, popCenterMats, visualize=True)
+
+    radius = 2  # Radius of the sphere
+    num_masses_per_level = 8  # Number of masses per level
+    base_size = 1
+    height = 1
+    num_levels = 3
+    
+    # masses, springs = create_fractal_tetrahedrons(base_size, height, num_levels)
+    # masses, springs = make_multilayer_sphere(radius, num_masses_per_level)
+    # masses, springs = makeOnePyramid()
+    # masses, springs = makeOneWorm()
+    masses, springs = makeBoxes()
+    simulate(popCenterLocs, popCenterMats, masses, springs, visualize=True)
