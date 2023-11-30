@@ -40,7 +40,7 @@ class MassSpringSystem:
 
 
     def simulate(self, dt):
-        mu_s = 1000  # Static friction coefficient
+        mu_s = 1  # Static friction coefficient
         mu_k = 0.5 # Kinetic friction coefficient
 
         # Compute forces
