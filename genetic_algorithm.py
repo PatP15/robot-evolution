@@ -184,14 +184,31 @@ class GeneticAlgorithmPareto():
         centerLocations[..., 2] = centerLocations[..., 2] * 2
         centerMaterials = torch.randint(low=1, high=5, size=(self.populationSize, self.numCenters, 1), dtype=torch.float)
         return centerLocations.to(device), centerMaterials.to(device)
+    
+    def diversitySample(self, sampleSize=1):
+        '''
+            Center Location Tensor: (populationSize x numCenters x 3)
+            Center Material Tensor: (populationSize x numCenters x 1)
+
+            x: 0, 5 -> length
+            y: 0, 4 -> width
+            z: 0, 2 -> height
+        '''
+        centerLocations = torch.rand(size=(sampleSize, self.numCenters, 3), dtype=torch.float)
+        centerLocations[..., 0] = centerLocations[..., 0] * 5
+        centerLocations[..., 1] = centerLocations[..., 1] * 4
+        centerLocations[..., 2] = centerLocations[..., 2] * 2
+        centerMaterials = torch.randint(low=1, high=5, size=(sampleSize, self.numCenters, 1), dtype=torch.float)
+        return centerLocations.to(device), centerMaterials.to(device)
 
     def evaluate(self):
         # change here to evaluate with different objects
         # for now just putting in boxes
         return simulate(self.centerLocs, self.centerMats, self.box_masses, self.box_springs)
     
-    def calculatePareto(distances, ages):
-        points = torch.concat([distances, ages], dim=1)
+    def calculatePareto(self, distances, ages):
+        points = torch.stack([distances, -ages], dim=1)
+        print("Pareto Points Tensor:\n", points)
 
         # Assuming points is a tensor of shape (n, 2)
         n = points.shape[0]
@@ -205,19 +222,23 @@ class GeneticAlgorithmPareto():
         domination = torch.all(p1 <= p2, dim=2) & torch.any(p1 < p2, dim=2)
 
         # Count the number of dominations for each point: sum over rows
-        domination_counts = domination.sum(dim=0)
+        domination_counts = domination.sum(dim=0).float()
 
         return domination_counts
 
     def select(self):
         distances = self.evaluate()
+
+        numDoms = self.calculatePareto(distances, self.ages)
+        print("Number of Dominations:\n", numDoms)
+
         # distances[distances > 100] = 0
         # Optionally normalize the tensor to make it a probability distribution
         # distances = distances / distances.sum()
 
         # Sampling with replacement
         # print("Children Pop: ", len(distances))
-        selectedIndices = torch.multinomial(distances, self.populationSize//2, replacement=False)
+        selectedIndices = torch.multinomial(numDoms, self.populationSize//2, replacement=False)
 
         distances = distances[selectedIndices]
         self.centerLocs = self.centerLocs[selectedIndices]
@@ -281,12 +302,19 @@ class GeneticAlgorithmPareto():
         self.centerMats = torch.concat([self.centerMats, children], axis=0)
         self.centerMats = torch.round(torch.clip(self.centerMats, min=1, max=4))
 
-        split = self.ages.shape[0] // 2
         newAges = self.ages.reshape(self.ages.shape[0] // 2, 2)
-        newAges = torch.max(newAges, dim=1).values + 1
+        newAges = torch.max(newAges, dim=1).values.repeat_interleave(2) + 1
+        self.ages = self.ages + 1
         self.ages = torch.concat([self.ages, newAges], axis=0)
 
         # print("After recombine: self center locs ", self.centerLocs.size(), self.centerMats.size())
+
+    def diversityInjection(self, diversityProp=0.1):
+        numNew = int(self.populationSize * diversityProp)
+        newCenterLocs, newCenterMats = self.diversitySample(sampleSize=numNew)
+        self.centerLocs[-numNew:] = newCenterLocs
+        self.centerMats[-numNew:] = newCenterMats
+        self.ages[-numNew:] = 0
 
     def run(self, iterations=100, repeat=1):
         with open("evolve_robot.csv", 'w', newline='') as outFile:
@@ -316,6 +344,7 @@ class GeneticAlgorithmPareto():
                 
                 self.mutate()
                 self.recombine(mc=0.33)
+                self.diversityInjection(diversityProp=0.1)
                 torch.cuda.synchronize()
 
             tmpDistance = self.select()
