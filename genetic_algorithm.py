@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from display_dog import simulate
+from display_genetic import simulate
 import csv 
 import pickle
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
