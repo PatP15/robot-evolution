@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from display_genetic import simulate
-from display_genetic import makeBoxes, make_multilayer_sphere, makePyramid
+from display_genetic import makeBoxes, make_multilayer_sphere
 import csv 
 import pickle
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -162,11 +162,11 @@ class GeneticAlgorithmPareto():
     def __init__(self, populationSize, numCenters):
         self.populationSize = populationSize
         self.numCenters = numCenters
-        self.ages = torch.zeros(size=(self.populationSize,), dtype=torch.float)
+        self.ages = torch.zeros(size=(self.populationSize,), dtype=torch.float).to(device)
         self.centerLocs, self.centerMats = self.randomSample()
         self.box_masses, self.box_springs = makeBoxes()
-        self.sphere_masses, self.sphere_springs = make_multilayer_sphere()
-        self.pyramid_masses, self.pyramid_springs = makePyramid()
+        #self.sphere_masses, self.sphere_springs = make_multilayer_sphere()
+        #self.pyramid_masses, self.pyramid_springs = makePyramid()
         
 
     def randomSample(self):
@@ -283,7 +283,7 @@ class GeneticAlgorithmPareto():
 
         split = self.ages.shape[0] // 2
         newAges = self.ages.reshape(self.ages.shape[0] // 2, 2)
-        newAges = torch.max(newAges, dim=1) + 1
+        newAges = torch.max(newAges, dim=1).values + 1
         self.ages = torch.concat([self.ages, newAges], axis=0)
 
         # print("After recombine: self center locs ", self.centerLocs.size(), self.centerMats.size())
@@ -334,7 +334,7 @@ class GeneticAlgorithmPareto():
             print("Best Bot: ", bestBot)
 
 def main():
-    ga = GeneticAlgorithm(10, 6)
+    ga = GeneticAlgorithmPareto(20, 6)
     ga.run(iterations=50)
 
 if __name__ == "__main__":

@@ -66,8 +66,6 @@ def draw_checkered_ground(size, squares):
             glVertex3f(-half_size + (x+1) * square_size, -half_size + y * square_size, 0)  # Adjusted z to 0
             glEnd()
 
-
-
 def draw_cube(cube):
     glColor3f(0, 0, 1)  # Set color to blue
     glLineWidth(5)  # Set line width to 5
@@ -91,15 +89,10 @@ def draw_shadow(cube):
     glEnd()
 
 def draw_spheres_at_vertices(cube):
-      # Color of the spheres
+    glColor3f(1, 0, 0)  # Color of the spheres
     for i in range(len(cube.vertices)):
         glPushMatrix()
         glTranslatef(*(cube.vertices[i]))
-        #change color if z<0
-        if cube.vertices[i][2] < 0:
-            glColor3f(0, 1, 0)
-        else:
-            glColor3f(1, 0, 0)
         glutSolidSphere(cube.vertex_sizes[i], 20, 20)  # Draw a sphere of radius 0.1 with 20 slices and 20 stacks
         glPopMatrix()
 
@@ -190,7 +183,7 @@ def makeBoxes():
     springs = []
 
     # Define parameters for the worm
-    num_cubes = 2  # Number of cubes in each dimension
+    num_cubes = 5  # Number of cubes in each dimension
     cube_size = 1  # Size of each cube
 
     # Function to add cube masses
@@ -326,13 +319,6 @@ def makeOnePyramid():
 
     return masses, springs
 
-def calculate_center_of_mass(masses):
-    # Assumes masses is a tensor with shape [N, 4, 3] where N is the number of masses
-    # and each mass has x, y, z positions
-    total_mass_position = torch.sum(masses[:, 3, :], dim=0)
-    number_of_masses = masses.shape[0]
-    center_of_mass = total_mass_position / number_of_masses
-    return center_of_mass
 
 def simulate(popCenterLocs, popCenterMats, ogMasses, ogSprings, visualize=False):
     '''
@@ -372,7 +358,7 @@ def simulate(popCenterLocs, popCenterMats, ogMasses, ogSprings, visualize=False)
     # og = springs[:, 3].clone()
     # print(og)
     
-    dt = 0.004
+    dt = 0.001
     T = 0
     N = masses.size(0)
     netForces = torch.zeros((N, 3))
@@ -404,12 +390,7 @@ def simulate(popCenterLocs, popCenterMats, ogMasses, ogSprings, visualize=False)
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
             glLoadIdentity()
             gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
-            center_of_mass = calculate_center_of_mass(obj.masses)
-            camera_target_position = center_of_mass.numpy()  # Convert to numpy array if necessary
-            glTranslatef(-camera_target_position[0], -camera_target_position[1], -camera_distance - camera_target_position[2])
-
-
-            
+            glTranslatef(camera_translation[0], camera_translation[1], -camera_distance)
             glRotatef(angle_x, 1, 0, 0)
             glRotatef(angle_y, 0, 0, 1)
             # print(cube.edges)
@@ -438,13 +419,13 @@ def simulate(popCenterLocs, popCenterMats, ogMasses, ogSprings, visualize=False)
         # print(sum(movingAverage) / len(movingAverage))
         
         if int(T*10) % 10 == 0:
-            distances = torch.max(obj.masses[::ogMassNum, 3, :][:, :2] - initial_positions[:, :2], dim=1).values
-            print("Distances: ", distances)
+            distances = torch.abs(torch.max(obj.masses[::ogMassNum, 3, :][:, :2] - initial_positions[:, :2], dim=1).values)
+            #print("Distances: ", distances)
         #    print(distances)
 
     final_positions = obj.masses[::ogMassNum, 3, :].clone()
-    print("Final Positions: ", final_positions)
-    distances = torch.max(final_positions[:, :2] - initial_positions[:, :2], dim=1).values
+   # print("Final Positions: ", final_positions)
+    distances = torch.abs(torch.max(final_positions[:, :2] - initial_positions[:, :2], dim=1).values)
     #print(distances)
     return distances
 
