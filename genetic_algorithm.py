@@ -238,7 +238,9 @@ class GeneticAlgorithmPareto():
 
         # Sampling with replacement
         # print("Children Pop: ", len(distances))
-        selectedIndices = torch.multinomial(numDoms, self.populationSize//2, replacement=False)
+        selectedIndices = torch.argsort(-numDoms)[:numDoms.size()[0] // 2] # torch.multinomial(numDoms, self.populationSize//2, replacement=False)
+
+        print("Selected Number of Dominations:\n", numDoms[selectedIndices])
 
         distances = distances[selectedIndices]
         self.centerLocs = self.centerLocs[selectedIndices]
@@ -363,7 +365,7 @@ class GeneticAlgorithmPareto():
             print("Best Bot: ", bestBot)
 
 def main():
-    ga = GeneticAlgorithmPareto(20, 6)
+    ga = GeneticAlgorithmPareto(10000, 6)
     ga.run(iterations=50)
 
 if __name__ == "__main__":
