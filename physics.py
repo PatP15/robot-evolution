@@ -13,6 +13,83 @@ device = "cuda:0" if torch.cuda.is_available() else "cpu"
     m = number of springs,
     each row ~ (massIndex1, massIndex2, k spring constant, rest length)
 """
+class MassSpringSystem:
+    def __init__(self, masses, springs, materials):
+        # print("init: ", springs)
+        self.masses = masses.clone()
+        self.springs = springs.clone()
+        self.materials = materials.clone()
+        self.og = springs[:, 3].clone()
+        self.update_vertices()
+        self.create_edges()
+
+        # self.masses = masses.clone()
+        # print("init edges: ", self.edges)
+    
+    def update_vertices(self):
+        self.vertices = self.masses[:, 3, :]
+        # print("vertices: ", self.vertices)
+        self.vertex_sizes = self.masses[:, 0, 0]/20
+        # print("vertex_sizes ", self.vertex_sizes)
+
+    def create_edges(self):
+        # print("create_edges: ", springs)
+        # print(self.springs[:, :2])
+        self.edges = self.springs[:, :2]  # Get the first two columns which are the vertex indices for each spring
+        # print("edges: ", self.edges)
+
+
+    def simulate(self, dt):
+        mu_s = 1000  # Static friction coefficient
+        mu_k = 0.5 # Kinetic friction coefficient
+
+        # Compute forces
+        netForces = compute_net_spring_forces(self.masses, self.springs)  # Spring forces
+        netForces += computeGravityForces(self.masses)  # Gravity forces
+        groundCollisionForces = computeGroundCollisionForces(self.masses)
+        netForces += groundCollisionForces  # Ground collision forces
+        # Compute friction forces and apply only to the masses at or below ground level
+        staticFrictionIndices, kinecticFrictionForces = newComputeFrictionForces(self.masses, netForces, mu_s, mu_k)
+        # frictionForces = computeFrictionForces(self.masses, netForces, groundCollisionForces, mu_s, mu_k)
+        ground_indices = (self.masses[:, 3, 2] <= 0)
+
+        # Update net forces with friction forces for ground-contacting masses
+        # print(ground_indices.size(), "\n\n\n", staticFrictionIndices.size())
+        kineticFrictionMassIndices = torch.logical_and(ground_indices, torch.logical_not(staticFrictionIndices))
+        netForces[kineticFrictionMassIndices, :2] += kinecticFrictionForces[kineticFrictionMassIndices, :2]
+        # print(netForces)
+        # Integration step
+        # Calculate acceleration
+        self.masses[:, 1] = netForces / self.masses[:, 0, 0].unsqueeze(-1)
+        # Calculate velocity
+        self.masses[:, 2] += self.masses[:, 1] * dt
+        # Zero the velocity for static friction masses
+        staticFrictionMassIndices = torch.logical_and(ground_indices, staticFrictionIndices)
+        self.masses[staticFrictionMassIndices, 2, :2] = 0.0
+        # Calculate position
+        self.masses[:, 3] += self.masses[:, 2] * dt
+
+
+        # Apply dampening
+        self.masses[:, 2] = self.masses[:, 2] * 0.999
+        # print(self.masses[:, 2])
+    
+    # Update spring properties in-place according to material
+    def updateSprings(self, w, T):
+        # Update spring constant
+        # print("materials: ", self.materials)
+        # print("springs: ", self.springs.shape)
+        self.springs[self.materials == 1, 2] = 1000
+        self.springs[self.materials == 2, 2] = 2000
+        self.springs[self.materials == 3, 2] = 5000
+        self.springs[self.materials == 4, 2] = 5000
+        self.springs[self.materials == 5, 2] = 0
+        # Update resting lengths
+        self.springs[self.materials == 1, 3] = self.og[self.materials == 1]
+        self.springs[self.materials == 2, 3] = self.og[self.materials == 2]
+        self.springs[self.materials == 3, 3] = self.og[self.materials == 3] * (1 + 0.25 * np.sin(w*T))
+        self.springs[self.materials == 4, 3] = self.og[self.materials == 4] * (1 + 0.25 * np.sin(w*T+torch.pi))
+        self.springs[self.materials == 5, 3] = self.og[self.materials == 5]
 
 def generateMasses(massLocs, massVals):
     numMasses = len(massLocs)
