@@ -1,11 +1,12 @@
 import torch
 import numpy as np
 from display_genetic import simulate
-from display_genetic import makeBoxes, make_multilayer_sphere
+from display_genetic import makeBoxes, make_multilayer_sphere, makeOnePyramid
 import csv 
 import pickle
+import argparse
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
-
+from display_dog import makeOneDog
 class GeneticAlgorithm():
 
     def __init__(self, populationSize, numCenters):
@@ -159,14 +160,20 @@ class GeneticAlgorithm():
 
 class GeneticAlgorithmPareto():
 
-    def __init__(self, populationSize, numCenters):
+    def __init__(self, populationSize, numCenters, initialShape):
         self.populationSize = populationSize
         self.numCenters = numCenters
         self.ages = torch.zeros(size=(self.populationSize,), dtype=torch.float).to(device)
         self.centerLocs, self.centerMats = self.randomSample()
-        self.box_masses, self.box_springs = makeBoxes()
-        #self.sphere_masses, self.sphere_springs = make_multilayer_sphere()
-        #self.pyramid_masses, self.pyramid_springs = makePyramid()
+        self.initialShape = initialShape    
+        if initialShape == "box":
+            self.obj_masses, self.obj_springs = makeBoxes()
+        elif initialShape == "sphere":
+            self.obj_masses, self.obj_springs = make_multilayer_sphere()
+        elif initialShape == "pyramid":
+            self.obj_masses, self.obj_springs = makeOnePyramid()
+        elif initialShape == "dog":
+            self.obj_masses, self.obj_springs = makeOneDog()
         
 
     def randomSample(self):
@@ -205,7 +212,7 @@ class GeneticAlgorithmPareto():
         # change here to evaluate with different objects
         # for now just putting in boxes
         print("Population Center Materials:\n", self.centerMats)
-        return simulate(self.centerLocs, self.centerMats, self.box_masses, self.box_springs)
+        return simulate(self.centerLocs, self.centerMats, self.obj_masses, self.obj_springs)
     
     def calculatePareto(self, distances, ages):
         points = torch.stack([distances, -ages], dim=1)
@@ -264,8 +271,8 @@ class GeneticAlgorithmPareto():
         maxPos[..., 2] = maxPos[..., 2] * 5
         mutated_locs = self.centerLocs + alpha * torch.randn_like(self.centerLocs)
         zeroes = torch.zeros_like(self.centerLocs)
-        # torch.clip(mutated_locs, zeroes, maxPos, out=self.centerLocs)
-        self.centerLocs = mutated_locs
+        torch.clip(mutated_locs, zeroes, maxPos, out=self.centerLocs)
+        # self.centerLocs = mutated_locs
         self.centerMats = torch.round(torch.clip(self.centerMats + 4 * alpha * torch.randn_like(self.centerMats), min=1, max=5))
         # print("end mutate: ", self.centerLocs.device)
 
@@ -330,7 +337,7 @@ class GeneticAlgorithmPareto():
         self.ages[-numNew:] = 0
 
     def run(self, iterations=100, repeat=1):
-        with open("evolve_robot.csv", 'w', newline='') as outFile:
+        with open(self.initialShape + "_evolve_robot.csv", 'w', newline='') as outFile:
             writer = csv.writer(outFile)
             writer.writerow(["Iteration", "Distance", "Repeat"])
 
@@ -349,9 +356,9 @@ class GeneticAlgorithmPareto():
                 if tmpDistance > maxDistance:
                     maxDistance = tmpDistance
                     bestBot = (np.array(self.centerLocs[0].cpu()), np.array(self.centerMats[0].cpu()))
-                    with open("best_robot.pkl", 'wb') as f:
+                    with open(self.initialShape + "_best_robot.pkl", 'wb') as f:
                         pickle.dump(bestBot, f) 
-                with open("evolve_robot.csv", 'a', newline='') as outFile:
+                with open(self.initialShape + "_evolve_robot.csv", 'a', newline='') as outFile:
                     writer = csv.writer(outFile)
                     writer.writerow([i*self.populationSize, maxDistance.item(), j])
                 
@@ -364,20 +371,24 @@ class GeneticAlgorithmPareto():
             if tmpDistance > maxDistance:
                 maxDistance = tmpDistance
                 bestBot = (np.array(self.centerLocs[0].cpu()), np.array(self.centerMats[0].cpu()))
-                with open("evolve_robot.csv", 'a', newline='') as outFile:
+                with open(self.initialShape + "_evolve_robot.csv", 'a', newline='') as outFile:
                     writer = csv.writer(outFile)
                     writer.writerow([(i+1)*self.populationSize, maxDistance.item(), j])
 
-                with open("best_robot.pkl", 'wb') as f:
+                with open(self.initialShape + "_best_robot.pkl", 'wb') as f:
                     pickle.dump(bestBot, f)
 
             self.centerLocs, self.centerMats = self.randomSample()
             print("Max Distance: ", maxDistance)
             print("Best Bot: ", bestBot)
 
-def main():
-    ga = GeneticAlgorithmPareto(4, 24)
+def main(shape):
+    
+    ga = GeneticAlgorithmPareto(4, 24, shape)
     ga.run(iterations=10000)
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Run Genetic Algorithm with Pareto Optimization")
+    parser.add_argument("-s","--shape", type=str, default="box", help="Starting shape")
+    args = parser.parse_args()
+    main(args.shape)
