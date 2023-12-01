@@ -204,7 +204,7 @@ class GeneticAlgorithmPareto():
     def evaluate(self):
         # change here to evaluate with different objects
         # for now just putting in boxes
-        print("Population Center Materials:\n", self.centerMats)
+        # print("Population Center Materials:\n", self.centerMats)
         return simulate(self.centerLocs, self.centerMats, self.box_masses, self.box_springs)
     
     def calculatePareto(self, distances, ages):
@@ -355,7 +355,7 @@ class GeneticAlgorithmPareto():
                     writer = csv.writer(outFile)
                     writer.writerow([i*self.populationSize, maxDistance.item(), j])
                 
-                self.mutate(alpha=0.001)
+                self.mutate(alpha=0.01)
                 self.recombine(mc=0.33)
                 self.diversityInjection(diversityProp=0.25)
                 torch.cuda.synchronize()
@@ -376,7 +376,7 @@ class GeneticAlgorithmPareto():
             print("Best Bot: ", bestBot)
 
 def main():
-    ga = GeneticAlgorithmPareto(4, 24)
+    ga = GeneticAlgorithmPareto(1000, 12)
     ga.run(iterations=10000)
 
 if __name__ == "__main__":
