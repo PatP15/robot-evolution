@@ -59,8 +59,8 @@ class GeneticAlgorithm():
         # print("begin mutate: ", self.centerLocs.device)
         maxPos = torch.ones_like(self.centerLocs)
         maxPos[..., 0] = maxPos[..., 0] * 5
-        maxPos[..., 1] = maxPos[..., 1] * 4
-        maxPos[..., 2] = maxPos[..., 2] * 2
+        maxPos[..., 1] = maxPos[..., 1] * 5
+        maxPos[..., 2] = maxPos[..., 2] * 5
         mutated_locs = self.centerLocs + alpha * torch.randn_like(self.centerLocs)
         zeroes = torch.zeros_like(self.centerLocs)
         torch.clip(mutated_locs, zeroes, maxPos, out=self.centerLocs)  
@@ -180,8 +180,8 @@ class GeneticAlgorithmPareto():
         '''
         centerLocations = torch.rand(size=(self.populationSize, self.numCenters, 3), dtype=torch.float)
         centerLocations[..., 0] = centerLocations[..., 0] * 5
-        centerLocations[..., 1] = centerLocations[..., 1] * 4
-        centerLocations[..., 2] = centerLocations[..., 2] * 2
+        centerLocations[..., 1] = centerLocations[..., 1] * 5
+        centerLocations[..., 2] = centerLocations[..., 2] * 5
         centerMaterials = torch.randint(low=1, high=6, size=(self.populationSize, self.numCenters, 1), dtype=torch.float)
         return centerLocations.to(device), centerMaterials.to(device)
     
@@ -196,8 +196,8 @@ class GeneticAlgorithmPareto():
         '''
         centerLocations = torch.rand(size=(sampleSize, self.numCenters, 3), dtype=torch.float)
         centerLocations[..., 0] = centerLocations[..., 0] * 5
-        centerLocations[..., 1] = centerLocations[..., 1] * 4
-        centerLocations[..., 2] = centerLocations[..., 2] * 2
+        centerLocations[..., 1] = centerLocations[..., 1] * 5
+        centerLocations[..., 2] = centerLocations[..., 2] * 5
         centerMaterials = torch.randint(low=1, high=6, size=(sampleSize, self.numCenters, 1), dtype=torch.float)
         return centerLocations.to(device), centerMaterials.to(device)
 
@@ -260,8 +260,8 @@ class GeneticAlgorithmPareto():
         # print("begin mutate: ", self.centerLocs.device)
         maxPos = torch.ones_like(self.centerLocs)
         maxPos[..., 0] = maxPos[..., 0] * 5
-        maxPos[..., 1] = maxPos[..., 1] * 4
-        maxPos[..., 2] = maxPos[..., 2] * 2
+        maxPos[..., 1] = maxPos[..., 1] * 5
+        maxPos[..., 2] = maxPos[..., 2] * 5
         mutated_locs = self.centerLocs + alpha * torch.randn_like(self.centerLocs)
         zeroes = torch.zeros_like(self.centerLocs)
         # torch.clip(mutated_locs, zeroes, maxPos, out=self.centerLocs)
