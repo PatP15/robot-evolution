@@ -247,11 +247,11 @@ class GeneticAlgorithmPareto():
         self.centerMats = self.centerMats[selectedIndices]
         self.ages = self.ages[selectedIndices]
         
-        sortedIndices = torch.argsort(-1 * distances) # -1 is to sort from largest to smallest
-        distances = distances[sortedIndices]
-        self.centerLocs = self.centerLocs[sortedIndices]
-        self.centerMats = self.centerMats[sortedIndices]
-        self.ages = self.ages[sortedIndices]
+        # sortedIndices = torch.argsort(-1 * distances) # -1 is to sort from largest to smallest
+        # distances = distances[sortedIndices]
+        # self.centerLocs = self.centerLocs[sortedIndices]
+        # self.centerMats = self.centerMats[sortedIndices]
+        # self.ages = self.ages[sortedIndices]
 
         return distances[0]
 
@@ -275,10 +275,13 @@ class GeneticAlgorithmPareto():
         # Recombine Center Locations
         # print("Before recombine: ", self.centerLocs.shape)
         # print("centerLocs: ", self.centerLocs)
-        # tempCenterLocs = self.centerLocs.reshape((self.centerLocs.shape[0] // 2, -1))
-        split = self.centerLocs.shape[0] // 2
-        parents1 = self.centerLocs[:split, :, ...]
-        parents2 = self.centerLocs[split:, :, ...]
+        # print("Center Loc Shape ", self.centerLocs.size())
+        tempCenterLocs = self.centerLocs.reshape((self.centerLocs.shape[0] // 2, 2, self.numCenters, 3))
+        # split = self.centerLocs.shape[0] // 2
+        # parents1 = self.tempCenterLocs[:split, :, ...]
+        # parents2 = self.tempCenterLocs[split:, :, ...]
+        parents1 = tempCenterLocs[:, 0]
+        parents2 = tempCenterLocs[:, 1]
         # print("parents1: ", parents1)
         # print("parents2: ", parents2)
         children1 = mc * parents1 + (1 - mc) * parents2
@@ -291,10 +294,12 @@ class GeneticAlgorithmPareto():
         self.centerLocs = torch.concat([self.centerLocs, children], axis=0)
 
         # Recombine Center Materials
-        # tempCenterMats = self.centerMats.reshape((self.centerMats.shape[0] // 2, 2))
-        split = self.centerMats.shape[0] // 2
-        parents1 = self.centerMats[:split, :, ...]
-        parents2 = self.centerMats[split:, :, ...]
+        tempCenterMats = self.centerMats.reshape((self.centerMats.shape[0] // 2, 2, self.numCenters, 1))
+        # split = self.centerMats.shape[0] // 2
+        # parents1 = self.centerMats[:split, :, ...]
+        # parents2 = self.centerMats[split:, :, ...]
+        parents1 = tempCenterMats[:, 0]
+        parents2 = tempCenterMats[:, 1]
         # print("parents1: ", parents1)
         # print("parents2: ", parents2)
         children1 = mc * parents1 + (1 - mc) * parents2
@@ -304,12 +309,12 @@ class GeneticAlgorithmPareto():
         self.centerMats = torch.concat([self.centerMats, children], axis=0)
         self.centerMats = torch.round(torch.clip(self.centerMats, min=1, max=5))
 
-        split = self.ages.shape[0] // 2
-        parents1 = self.ages[:split]
-        parents2 = self.ages[split:]
-        newAges = torch.max(parents1, parents2).repeat_interleave(2) + 1
-        # newAges = self.ages.reshape(self.ages.shape[0] // 2, 2)
-        # newAges = torch.max(newAges, dim=1).values.repeat_interleave(2) + 1
+        # split = self.ages.shape[0] // 2
+        # parents1 = self.ages[:split]
+        # parents2 = self.ages[split:]
+        # newAges = torch.max(parents1, parents2).repeat_interleave(2) + 1
+        newAges = self.ages.reshape((self.ages.shape[0] // 2, 2))
+        newAges = torch.max(newAges, dim=1).values.repeat_interleave(2) + 1
         self.ages = self.ages + 1
         self.ages = torch.concat([self.ages, newAges], axis=0)
 
