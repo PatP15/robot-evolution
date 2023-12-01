@@ -71,9 +71,11 @@ def draw_cube(cube):
     glLineWidth(5)  # Set line width to 5
     glBegin(GL_LINES)
     for edge in cube.edges:
-        for vertex in edge:
-            # print("vertex: ", cube.vertices[int(vertex)])
-            glVertex3fv(cube.vertices[int(vertex)].numpy())
+        if int(edge[2]) != 5:
+            edge_vertices = edge[:2]
+            for vertex in edge_vertices:
+                # print("vertex: ", cube.vertices[int(vertex)])
+                glVertex3fv(cube.vertices[int(vertex)].numpy())
     glEnd()
 
 def draw_shadow(cube):
@@ -81,11 +83,15 @@ def draw_shadow(cube):
     glLineWidth(5)  # Set line width to 5
     glBegin(GL_LINES)
     for edge in cube.edges:
-        for vertex in edge:
-            point = cube.vertices[int(vertex)].clone()
-            point[2] = 0
-            # print(point)
-            glVertex3fv(point.numpy())
+        # print("edge", edge)
+        if int(edge[2]) != 5:
+            edge_vertices = edge[:2]
+            # print("edge_vertices", edge_vertices)
+            for vertex in edge_vertices:
+                point = cube.vertices[int(vertex)].clone()
+                point[2] = 0
+                # print(point)
+                glVertex3fv(point.numpy())
     glEnd()
 
 def draw_spheres_at_vertices(cube):
