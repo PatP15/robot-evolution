@@ -169,7 +169,7 @@ class GeneticAlgorithmPareto():
         if initialShape == "box":
             self.obj_masses, self.obj_springs = makeBoxes()
         elif initialShape == "sphere":
-            self.obj_masses, self.obj_springs = make_multilayer_sphere(1, 8, 5)
+            self.obj_masses, self.obj_springs = make_multilayer_sphere(3, 10, 5)
         elif initialShape == "pyramid":
             self.obj_masses, self.obj_springs = makeOnePyramid()
         elif initialShape == "dog":
@@ -212,7 +212,7 @@ class GeneticAlgorithmPareto():
         # change here to evaluate with different objects
         # for now just putting in boxes
         # print("Population Center Materials:\n", self.centerMats)
-        return simulate(self.centerLocs, self.centerMats, self.box_masses, self.box_springs)
+        return simulate(self.centerLocs, self.centerMats, self.obj_masses, self.obj_springs)
     
     def calculatePareto(self, distances, ages):
         points = torch.stack([distances, -ages], dim=1)
@@ -384,7 +384,7 @@ class GeneticAlgorithmPareto():
 
 def main(shape):
     
-    ga = GeneticAlgorithmPareto(1000, 12, shape)
+    ga = GeneticAlgorithmPareto(12, 12, shape)
     ga.run(iterations=10000)
 
 if __name__ == "__main__":
