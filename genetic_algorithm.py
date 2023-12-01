@@ -169,7 +169,7 @@ class GeneticAlgorithmPareto():
         if initialShape == "box":
             self.obj_masses, self.obj_springs = makeBoxes()
         elif initialShape == "sphere":
-            self.obj_masses, self.obj_springs = make_multilayer_sphere()
+            self.obj_masses, self.obj_springs = make_multilayer_sphere(1, 8, 5)
         elif initialShape == "pyramid":
             self.obj_masses, self.obj_springs = makeOnePyramid()
         elif initialShape == "dog":
@@ -384,7 +384,7 @@ class GeneticAlgorithmPareto():
 
 def main(shape):
     
-    ga = GeneticAlgorithmPareto(4, 24, shape)
+    ga = GeneticAlgorithmPareto(1000, 12, shape)
     ga.run(iterations=10000)
 
 if __name__ == "__main__":
