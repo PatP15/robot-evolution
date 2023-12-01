@@ -27,9 +27,19 @@ class MassSpringSystem:
         # print("init edges: ", self.edges)
     
     def update_vertices(self):
+        #make a tensor to keep track of all the vertices
+        # self.vertices = torch.zeros((self.masses.size(0), 3))
         self.vertices = self.masses[:, 3, :]
         # print("vertices: ", self.vertices)
         self.vertex_sizes = self.masses[:, 0, 0]/20
+
+        for massIdx in range(self.masses.size(0)):
+            #self.springs i
+            springs_with_mass = self.springs[(self.springs == massIdx).any(axis=1)]
+
+            if (springs_with_mass[:, 2] == 1).all():
+                self.vertex_sizes[massIdx] = 0
+        
         # print("vertex_sizes ", self.vertex_sizes)
 
     def create_edges(self):
