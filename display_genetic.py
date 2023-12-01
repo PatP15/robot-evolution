@@ -10,7 +10,8 @@ from physics import *
 import pickle
 import math
 import time
-
+import argparse
+from display_dog import makeOneDog
 # Camera variables
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 angle_x = 0
@@ -453,7 +454,9 @@ def simulate(popCenterLocs, popCenterMats, ogMasses, ogSprings, visualize=False)
     return distances
 
 if __name__ == "__main__":
-    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s","--shape", type=str, default="box", help="Starting shape")
+    args = parser.parse_args()
     with open("best_robot.pkl", 'rb') as f:
         bestBot = pickle.load(f)
 
@@ -480,9 +483,13 @@ if __name__ == "__main__":
     height = 1
     num_levels = 3
     
-    # masses, springs = create_fractal_tetrahedrons(base_size, height, num_levels)
-    # masses, springs = make_multilayer_sphere(radius, num_masses_per_level)
-    # masses, springs = makeOnePyramid()
-    # masses, springs = makeOneWorm()
-    masses, springs = makeBoxes()
+    if args.shape == "sphere":
+        masses, springs = make_multilayer_sphere(3, 10, 5)
+    elif args.shape == "pyramid":
+        masses, springs = makeOnePyramid()
+    elif args.shape == "box":
+        masses, springs = makeBoxes()
+    elif args.shape == "dog":
+        masses, springs = makeOneDog()
+
     simulate(popCenterLocs, popCenterMats, masses, springs, visualize=True)
