@@ -364,7 +364,7 @@ class GeneticAlgorithmPareto():
                 
                 self.mutate(alpha=0.01)
                 self.recombine(mc=0.33)
-                self.diversityInjection(diversityProp=0.25)
+                self.diversityInjection(diversityProp=0.1)
                 torch.cuda.synchronize()
 
             tmpDistance = self.select()
@@ -384,7 +384,7 @@ class GeneticAlgorithmPareto():
 
 def main(shape):
     
-    ga = GeneticAlgorithmPareto(1000, 12, shape)
+    ga = GeneticAlgorithmPareto(100, 24, shape)
     ga.run(iterations=10000)
 
 if __name__ == "__main__":
