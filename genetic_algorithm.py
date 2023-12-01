@@ -383,7 +383,7 @@ class GeneticAlgorithmPareto():
             print("Best Bot: ", bestBot)
 
 def main():
-    ga = GeneticAlgorithmPareto(4, 24)
+    ga = GeneticAlgorithmPareto(1000, 12)
     ga.run(iterations=10000)
 
 if __name__ == "__main__":
