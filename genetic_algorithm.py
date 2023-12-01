@@ -384,7 +384,7 @@ class GeneticAlgorithmPareto():
 
 def main(shape):
     
-    ga = GeneticAlgorithmPareto(12, 12, shape)
+    ga = GeneticAlgorithmPareto(1000, 12, shape)
     ga.run(iterations=10000)
 
 if __name__ == "__main__":
