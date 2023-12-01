@@ -110,7 +110,15 @@ def draw_spheres_at_vertices(cube):
 
 
 def mouse_button_callback(event):
-    global mouse_dragging, last_mouse_x, last_mouse_y, camera_distance
+    global mouse_dragging, last_mouse_x, last_mouse_y, camera_distance, shift_pressed
+
+    if event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
+            shift_pressed = True
+
+    if event.type == pygame.KEYUP:
+        if event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
+            shift_pressed = False
 
     if event.type == pygame.MOUSEBUTTONDOWN:
         if event.button == 1:  # Left button press for rotation
@@ -128,21 +136,22 @@ def mouse_button_callback(event):
         if event.button in [1, 3]:  # Left or right button release
             mouse_dragging = False
 
-def mouse_motion_callback(event):
-    global angle_x, angle_y, last_mouse_x, last_mouse_y, camera_translation
+def mouse_motion_callback(event, center_of_mass):
+    global angle_x, angle_y, last_mouse_x, last_mouse_y, camera_translation, shift_pressed
 
     dx = event.pos[0] - last_mouse_x
     dy = event.pos[1] - last_mouse_y
 
-    if mouse_dragging == "DRAG":  # Rotation
-        angle_x += dy * 0.5
-        angle_y += dx * 0.5
-    elif mouse_dragging == "PAN":  # Panning
+    if shift_pressed:
+        # Panning logic
         camera_translation[0] += dx * 0.05
         camera_translation[1] -= dy * 0.05
+    else:
+        # Rotating around the center of mass
+        angle_x += dy * 0.5
+        angle_y += dx * 0.5
 
     last_mouse_x, last_mouse_y = event.pos
-    # ... [rest of the code remains unchanged]
     
 def calculate_center_of_mass(masses):
     # Assumes masses is a tensor with shape [N, 4, 3] where N is the number of masses
@@ -340,7 +349,7 @@ def makeOnePyramid():
 
     return masses, springs
 
-
+shift_pressed = False
 def simulate(popCenterLocs, popCenterMats, ogMasses, ogSprings, visualize=False):
     '''
         materials
@@ -412,11 +421,17 @@ def simulate(popCenterLocs, popCenterMats, ogMasses, ogSprings, visualize=False)
             glLoadIdentity()
             gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
             center_of_mass = calculate_center_of_mass(obj.masses)
-            camera_target_position = center_of_mass.numpy()  # Convert to numpy array if necessary
-            glTranslatef(-camera_target_position[0], -camera_target_position[1], -camera_distance - camera_target_position[2])
-
-            glRotatef(angle_x, 1, 0, 0)
-            glRotatef(angle_y, 0, 0, 1)
+            if not shift_pressed:
+                # Focus camera on center of mass
+                camera_target_position = center_of_mass.numpy()
+                glTranslatef(-camera_target_position[0], -camera_target_position[1], -camera_distance - camera_target_position[2])
+                glRotatef(angle_x, 1, 0, 0)
+                glRotatef(angle_y, 0, 1, 0)
+            else:
+                # Panning logic
+                glTranslatef(camera_translation[0], camera_translation[1], -camera_distance)
+                glRotatef(angle_x, 1, 0, 0)
+                glRotatef(angle_y, 0, 1, 0)
             # print(cube.edges)
         
         
