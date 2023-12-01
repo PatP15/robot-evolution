@@ -136,7 +136,7 @@ def mouse_button_callback(event):
         if event.button in [1, 3]:  # Left or right button release
             mouse_dragging = False
 
-def mouse_motion_callback(event, center_of_mass):
+def mouse_motion_callback(event):
     global angle_x, angle_y, last_mouse_x, last_mouse_y, camera_translation, shift_pressed
 
     dx = event.pos[0] - last_mouse_x
@@ -388,7 +388,7 @@ def simulate(popCenterLocs, popCenterMats, ogMasses, ogSprings, visualize=False)
     # og = springs[:, 3].clone()
     # print(og)
     
-    dt = 0.004
+    dt = 0.001
     T = 0
     N = masses.size(0)
     netForces = torch.zeros((N, 3))
@@ -426,12 +426,12 @@ def simulate(popCenterLocs, popCenterMats, ogMasses, ogSprings, visualize=False)
                 camera_target_position = center_of_mass.numpy()
                 glTranslatef(-camera_target_position[0], -camera_target_position[1], -camera_distance - camera_target_position[2])
                 glRotatef(angle_x, 1, 0, 0)
-                glRotatef(angle_y, 0, 1, 0)
+                glRotatef(angle_y, 0, 0, 1)
             else:
                 # Panning logic
                 glTranslatef(camera_translation[0], camera_translation[1], -camera_distance)
                 glRotatef(angle_x, 1, 0, 0)
-                glRotatef(angle_y, 0, 1, 0)
+                glRotatef(angle_y, 0, 0, 1)
             # print(cube.edges)
         
         
@@ -472,9 +472,25 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-s","--shape", type=str, default="box", help="Starting shape")
     args = parser.parse_args()
-    with open("best_robot.pkl", 'rb') as f:
-        bestBot = pickle.load(f)
 
+    if args.shape == "sphere":
+        filename = "box_best_robot.pkl"
+        masses, springs = make_multilayer_sphere(3, 10, 5)
+
+    elif args.shape == "pyramid":
+        filename = "dog_best_robot.pkl"
+        masses, springs = makeOnePyramid()
+
+    elif args.shape == "box":
+        filename = "pyramid_best_robot.pkl"
+        masses, springs = makeBoxes()
+
+    elif args.shape == "dog":
+        filename = "sphere_best_robot.pkl"
+        masses, springs = makeOneDog()
+   
+    with open(filename, 'rb') as f:
+        bestBot = pickle.load(f)
     # with open("best_robot_rs.pkl", 'rb') as f:
     #     rsBot = pickle.load(f)
 
@@ -498,13 +514,6 @@ if __name__ == "__main__":
     height = 1
     num_levels = 3
     
-    if args.shape == "sphere":
-        masses, springs = make_multilayer_sphere(3, 10, 5)
-    elif args.shape == "pyramid":
-        masses, springs = makeOnePyramid()
-    elif args.shape == "box":
-        masses, springs = makeBoxes()
-    elif args.shape == "dog":
-        masses, springs = makeOneDog()
+   
 
     simulate(popCenterLocs, popCenterMats, masses, springs, visualize=True)
