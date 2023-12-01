@@ -35,7 +35,7 @@ class MassSpringSystem:
     def create_edges(self):
         # print("create_edges: ", springs)
         # print(self.springs[:, :2])
-        self.edges = self.springs[:, :2]  # Get the first two columns which are the vertex indices for each spring
+        self.edges = self.springs[:, :3]  # Get the first two columns which are the vertex indices for each spring
         # print("edges: ", self.edges)
 
 

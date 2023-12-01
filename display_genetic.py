@@ -71,9 +71,11 @@ def draw_cube(cube):
     glLineWidth(5)  # Set line width to 5
     glBegin(GL_LINES)
     for edge in cube.edges:
-        for vertex in edge:
-            # print("vertex: ", cube.vertices[int(vertex)])
-            glVertex3fv(cube.vertices[int(vertex)].numpy())
+        if edge[2] != 5:
+            edge_vertices = cube.vertices[:2]
+            for vertex in edge_vertices:
+                # print("vertex: ", cube.vertices[int(vertex)])
+                glVertex3fv(cube.vertices[int(vertex)].numpy())
     glEnd()
 
 def draw_shadow(cube):
