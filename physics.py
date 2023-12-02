@@ -32,8 +32,11 @@ class MassSpringSystem:
         self.vertices = self.masses[:, 3, :]
         # print("vertices: ", self.vertices)
         self.vertex_sizes = self.masses[:, 0, 0]/20
-
+        
+        # Need to make this more efficient
         for massIdx in range(self.masses.size(0)):
+            if massIdx % 1000 == 0:
+                print(massIdx)
             #self.springs i
             springs_with_mass = self.springs[(self.springs == massIdx).any(axis=1)]
 

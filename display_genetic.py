@@ -357,6 +357,7 @@ def simulate(popCenterLocs, popCenterMats, ogMasses, ogSprings, visualize=False)
         2: k=20000 b=c=0
         3: k=5000 b=0.25 c=0
         4: k=5000 b=0.25 c=pi
+        5: k=b=c=0
         w=2*pi
     '''
     # print("Pop device: ", popCenterLocs.device)
@@ -365,6 +366,7 @@ def simulate(popCenterLocs, popCenterMats, ogMasses, ogSprings, visualize=False)
 
     ogMassNum = ogMasses.size()[0]
     masses, springs = concatenate_masses_and_springs(ogMasses.clone(), ogSprings.clone(), populationSize)
+
     # print
     masses = masses.to(device)
     springs = springs.to(device)
@@ -402,7 +404,8 @@ def simulate(popCenterLocs, popCenterMats, ogMasses, ogSprings, visualize=False)
         gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
         glTranslatef(0.0, 0.0, -12) # Adjusted to have a top-down view
     # Initialization of Masses and Springs
-
+    
+    
     # print(len(objs))
     movingAverage = []
     while T < 5:
