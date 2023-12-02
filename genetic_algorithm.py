@@ -216,7 +216,7 @@ class GeneticAlgorithmPareto():
     
     def calculatePareto(self, distances, ages):
         points = torch.stack([distances, -ages], dim=1)
-        print("Pareto Points Tensor:\n", points)
+        # print("Pareto Points Tensor:\n", points)
 
         # Assuming points is a tensor of shape (n, 2)
         n = points.shape[0]
@@ -238,7 +238,7 @@ class GeneticAlgorithmPareto():
         distances = self.evaluate()
 
         numDominated = self.calculatePareto(distances, self.ages)
-        print("Number of times Dominated:\n", numDominated)
+        # print("Number of times Dominated:\n", numDominated)
 
         # distances[distances > 100] = 0
         # Optionally normalize the tensor to make it a probability distribution
@@ -248,7 +248,7 @@ class GeneticAlgorithmPareto():
         # print("Children Pop: ", len(distances))
         selectedIndices = torch.argsort(numDominated)[:numDominated.size()[0] // 2] # torch.multinomial(numDoms, self.populationSize//2, replacement=False)
 
-        print("Selected Number of times Dominated:\n", numDominated[selectedIndices])
+        # print("Selected Number of times Dominated:\n", numDominated[selectedIndices])
 
         distances = distances[selectedIndices]
         self.centerLocs = self.centerLocs[selectedIndices]
@@ -270,9 +270,9 @@ class GeneticAlgorithmPareto():
         maxPos[..., 1] = maxPos[..., 1] * 5
         maxPos[..., 2] = maxPos[..., 2] * 5
         mutated_locs = self.centerLocs + alpha * torch.randn_like(self.centerLocs)
-        zeroes = torch.zeros_like(self.centerLocs)
-        torch.clip(mutated_locs, zeroes, maxPos, out=self.centerLocs)
-        # self.centerLocs = mutated_locs
+        # zeroes = torch.zeros_like(self.centerLocs)
+        # torch.clip(mutated_locs, zeroes, maxPos, out=self.centerLocs)
+        self.centerLocs = mutated_locs
         self.centerMats = torch.round(torch.clip(self.centerMats + 4 * alpha * torch.randn_like(self.centerMats), min=1, max=5))
         # print("end mutate: ", self.centerLocs.device)
 
@@ -348,7 +348,7 @@ class GeneticAlgorithmPareto():
                 # print("Iteration: ", i)
                 # print("Population Size: ", self.centerLocs.size()[0])
                 # print("start run: ", self.centerLocs.device)
-                print("Population Ages:\n", self.ages)
+                # print("Population Ages:\n", self.ages)
                 torch.cuda.synchronize()
                 tmpDistance = self.select()
                 torch.cuda.synchronize()
@@ -362,9 +362,9 @@ class GeneticAlgorithmPareto():
                     writer = csv.writer(outFile)
                     writer.writerow([i*self.populationSize, maxDistance.item(), j])
                 
-                self.mutate(alpha=0.01)
+                self.mutate(alpha=0.001)
                 self.recombine(mc=0.33)
-                self.diversityInjection(diversityProp=0.25)
+                self.diversityInjection(diversityProp=0.1)
                 torch.cuda.synchronize()
 
             tmpDistance = self.select()
@@ -384,7 +384,7 @@ class GeneticAlgorithmPareto():
 
 def main(shape):
     
-    ga = GeneticAlgorithmPareto(12, 12, shape)
+    ga = GeneticAlgorithmPareto(1000, 24, shape)
     ga.run(iterations=10000)
 
 if __name__ == "__main__":
