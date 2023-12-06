@@ -84,7 +84,8 @@ def draw_shadow(cube):
     glLineWidth(5)  # Set line width to 5
     glBegin(GL_LINES)
     for edge in cube.edges:
-        # print("edge", edge)
+        if int(edge[2]) == 5:
+            print("edge", edge)
         if int(edge[2]) != 5:
             edge_vertices = edge[:2]
             # print("edge_vertices", edge_vertices)
@@ -238,6 +239,7 @@ def makeBoxes():
 
     # Convert to tensors
     massValues = [1] * len(massLocations)  # Assuming each mass has a value of 1
+    # massLocations = [(x, y, z + 2) for x, y, z in massLocations]
     masses = torch.tensor(generateMasses(massLocations, massValues), dtype=torch.float)
 
     # print("Springs: ", springs)
@@ -311,6 +313,90 @@ def make_multilayer_sphere(radius, num_masses_per_layer, num_layers=5):
     springs = torch.tensor(springs, dtype=torch.float)
 
     return masses, springs
+def makeOneDog():
+    massLocations = [(0, 0, 0),
+                     (0, 1, 0),
+                     (0, 3, 0),
+                     (0, 4, 0),
+                     (1, 0, 0),
+                     (1, 1, 0),
+                     (1, 3, 0),
+                     (1, 4, 0),
+                     (0, 0, -1),
+                     (0, 1, -1),
+                     (0, 3, -1),
+                     (0, 4, -1),
+                     (1, 0, -1),
+                     (1, 1, -1),
+                     (1, 3, -1),
+                     (1, 4, -1),
+                     (0.5, 0.5, -2),
+                     (0.5, 3.5, -2)]
+    massLocations = [(x, y, z + 2) for x, y, z in massLocations]
+
+    massValues = [1] * 36
+    # print(massValues)
+
+    lefthip_masses = [0, 1, 4, 5, 8, 9, 12, 13]
+    lefthip_springs = generateSprings(massLocations, lefthip_masses)
+    
+    middle_masses = [1,2,5,6,9,10,13,14]
+    middle_springs = generateSprings(massLocations, middle_masses)
+
+    righthip_masses = [2,3,6,7,10,11,14,15]
+    righthip_springs = generateSprings(massLocations, righthip_masses)
+
+    frontlegs = np.array([
+        [12, 16, 10000, math.sqrt(1.5)],
+        [13, 16, 10000, math.sqrt(1.5)],
+        [8, 16, 10000, math.sqrt(1.5)],
+        [9, 16, 10000, math.sqrt(1.5)],
+        [10, 17, 10000, math.sqrt(1.5)],
+        [11, 17, 10000, math.sqrt(1.5)],
+        [14, 17, 10000, math.sqrt(1.5)],
+        [15, 17, 10000, math.sqrt(1.5)],
+    ])
+    backlegs = frontlegs.copy()
+    backlegs[:, :2] += 18
+    # print(backlegs)
+    # all_combinations = list(combinations(range(18), 2))
+    # springs = np.array([[comb[0], comb[1], 10000, np.linalg.norm(np.array(massLocations[comb[0]]) - np.array(massLocations[comb[1]]))] for comb in all_combinations])
+
+    # Front half of dog
+    og = massLocations.copy()
+    for x,y,z in og:
+        massLocations.append((x + 4, y, z))
+
+    # print(len(massLocations))
+    lefthip_masses = np.array([0, 1, 4, 5, 8, 9, 12, 13]) + 18
+    lefthip2_springs = generateSprings(massLocations, lefthip_masses)
+    
+    middle_masses = np.array([1,2,5,6,9,10,13,14]) + 18
+    middle2_springs = generateSprings(massLocations, middle_masses)
+
+    righthip_masses = np.array([2,3,6,7,10,11,14,15]) + 18
+    righthip2_springs = generateSprings(massLocations, righthip_masses)
+
+    torso_masses = np.array([1, 2, 9, 10])
+    torso_masses = np.concatenate((torso_masses, torso_masses + 18))
+    torso_springs = generateSprings(massLocations, torso_masses)
+
+    masses = generateMasses(massLocations, massValues)
+
+    springs = np.concatenate((lefthip_springs, middle_springs, righthip_springs, frontlegs, 
+                              lefthip2_springs, middle2_springs, righthip2_springs, backlegs, torso_springs), axis=0)
+
+    grid_dimensions = (1, 1)
+    spacing = 3 # adjust this value for the distance between cubes in the grid
+
+    # objs = []
+    
+    
+    masses = torch.tensor(masses, dtype=torch.float)
+    springs = torch.tensor(springs, dtype=torch.float)
+
+    return masses, springs
+
 
 def makeOnePyramid():
     massLocations = []
@@ -382,7 +468,51 @@ def simulate(popCenterLocs, popCenterMats, ogMasses, ogSprings, visualize=False)
     # print("Initial Positions: ", initial_positions)
     # print("Materials:\n\n", materials)
     # print("Springs:\n\n", springs)
+    objs = []
+    objs.append(obj)
 
+    def translate_masses(masses, translation):
+        masses[:, 3 ] += translation
+        return masses
+
+    translation_distances = [np.array([-x, 0, 0]) for x in range(0, 100, 10)]
+
+    filename = "random_bots/sphere_random_robot_2.pkl"
+    masses, springs = make_multilayer_sphere(3, 10, 5)
+    masses = translate_masses(masses, translation_distances[3])
+    with open(filename, 'rb') as f:
+        bestBot = pickle.load(f)
+    popCenterLocs = torch.tensor(bestBot[0]).unsqueeze(0).to(device)
+    popCenterMats = torch.tensor(bestBot[1]).unsqueeze(0).to(device)
+    materials = assignMaterials(masses, springs, popCenterLocs, popCenterMats)
+    obj = (MassSpringSystem(masses, springs, materials))
+    objs.append(obj)
+
+    
+    filename = "random_bots/pyramid_random_robot_2.pkl"
+    masses, springs = makeOnePyramid()
+    masses = translate_masses(masses, translation_distances[1])
+    with open(filename, 'rb') as f:
+        bestBot = pickle.load(f)
+    popCenterLocs = torch.tensor(bestBot[0]).unsqueeze(0).to(device)
+    popCenterMats = torch.tensor(bestBot[1]).unsqueeze(0).to(device)
+    materials = assignMaterials(masses, springs, popCenterLocs, popCenterMats)
+    obj = (MassSpringSystem(masses, springs, materials))
+    objs.append(obj)
+
+
+
+    
+    filename = "dog_best_robot.pkl"
+    masses, springs = makeOneDog()
+    masses = translate_masses(masses, translation_distances[2])
+    with open(filename, 'rb') as f:
+        bestBot = pickle.load(f)
+    popCenterLocs = torch.tensor(bestBot[0]).unsqueeze(0).to(device)
+    popCenterMats = torch.tensor(bestBot[1]).unsqueeze(0).to(device)
+    materials = assignMaterials(masses, springs, popCenterLocs, popCenterMats)
+    obj = (MassSpringSystem(masses, springs, materials))
+    objs.append(obj)
     # exit(1)
     # print(springs.size())
     # print(materials.size())
@@ -390,7 +520,7 @@ def simulate(popCenterLocs, popCenterMats, ogMasses, ogSprings, visualize=False)
     # og = springs[:, 3].clone()
     # print(og)
     
-    dt = 0.001
+    dt = 0.004
     T = 0
     N = masses.size(0)
     netForces = torch.zeros((N, 3))
@@ -422,32 +552,24 @@ def simulate(popCenterLocs, popCenterMats, ogMasses, ogSprings, visualize=False)
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
             glLoadIdentity()
-            gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
-            center_of_mass = calculate_center_of_mass(obj.masses)
-            if not shift_pressed:
-                # Focus camera on center of mass
-                camera_target_position = center_of_mass.numpy()
-                glTranslatef(-camera_target_position[0], -camera_target_position[1], -camera_distance - camera_target_position[2])
-                glRotatef(angle_x, 1, 0, 0)
-                glRotatef(angle_y, 0, 0, 1)
-            else:
-                # Panning logic
-                glTranslatef(camera_translation[0], camera_translation[1], -camera_distance)
-                glRotatef(angle_x, 1, 0, 0)
-                glRotatef(angle_y, 0, 0, 1)
+            gluPerspective(45, (display[0] / display[1]), 0.1, 100.0)
+            glTranslatef(camera_translation[0], camera_translation[1], -camera_distance)
+            glRotatef(angle_x, 1, 0, 0)
+            glRotatef(angle_y, 0, 0, 1)
             # print(cube.edges)
         
         
             draw_checkered_ground(100, 100)
 
-        
-        obj.updateSprings(w, T)
-        obj.simulate(dt)
+        for obj in objs:
+            obj.updateSprings(w, T)
+            obj.simulate(dt)
         if visualize:
-            draw_shadow(obj)
-            draw_cube(obj)
-            # draw_cube_faces(cube)
-            draw_spheres_at_vertices(obj)
+            for obj in objs:
+                draw_shadow(obj)
+                draw_cube(obj)
+                # draw_cube_faces(cube)
+                draw_spheres_at_vertices(obj)
         
 
         T += dt
@@ -477,19 +599,19 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.shape == "sphere":
-        filename = "box_best_robot.pkl"
+        filename = "random_bots/sphere_random_robot_2.pkl"
         masses, springs = make_multilayer_sphere(3, 10, 5)
 
     elif args.shape == "pyramid":
-        filename = "dog_best_robot.pkl"
+        filename = "random_bots/pyramid_random_robot_2.pkl"
         masses, springs = makeOnePyramid()
 
     elif args.shape == "box":
-        filename = "pyramid_best_robot.pkl"
+        filename = "box_best_robot3.pkl"
         masses, springs = makeBoxes()
 
     elif args.shape == "dog":
-        filename = "sphere_best_robot.pkl"
+        filename = "random_bots/dog_random_robot_1.pkl"
         masses, springs = makeOneDog()
    
     with open(filename, 'rb') as f:

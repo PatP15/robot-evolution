@@ -103,6 +103,9 @@ class MassSpringSystem:
         self.springs[self.materials == 3, 3] = self.og[self.materials == 3] * (1 + 0.25 * np.sin(w*T))
         self.springs[self.materials == 4, 3] = self.og[self.materials == 4] * (1 + 0.25 * np.sin(w*T+torch.pi))
         self.springs[self.materials == 5, 3] = self.og[self.materials == 5]
+    
+    def translateMasses(self, translation):
+        self.masses[:, 3] += translation
 
 def generateMasses(massLocs, massVals):
     numMasses = len(massLocs)
