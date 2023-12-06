@@ -3,5 +3,5 @@ This is the codebase for the Evolutionary Computation class with Hod Lipson. In 
 
 [![Watch our best evolved robot!](https://img.youtube.com/vi/G8h7zZ-lWg8/hqdefault.jpg)](https://www.youtube.com/embed/G8h7zZ-lWg8)
 
-Here is a link to our (write-up)[https://docs.google.com/document/d/1KxnxUdfxEmTXtWBklgBOhrc9JU3rEYzVs80F3DdjC_I/edit?usp=sharing].
+Here is a link to our [write-up](https://docs.google.com/document/d/1KxnxUdfxEmTXtWBklgBOhrc9JU3rEYzVs80F3DdjC_I/edit?usp=sharing).
 
